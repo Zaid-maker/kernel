@@ -1,0 +1,52 @@
+name: Build Kernel
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc \
+            gcc-multilib \
+            binutils \
+            grub-pc-bin \
+            grub-common \
+            xorriso \
+            mtools
+
+      - name: Build kernel binary
+        run: make all CROSS_COMPILE=
+
+      - name: Build bootable ISO
+        run: make iso CROSS_COMPILE=
+
+      - name: Generate checksums
+        run: |
+          sha256sum build/kernel.bin > build/SHA256SUMS.txt
+          sha256sum build/kernel.elf >> build/SHA256SUMS.txt
+          sha256sum build/kernel.iso >> build/SHA256SUMS.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kernel-build
+          path: |
+            build/kernel.bin
+            build/kernel.elf
+            build/kernel.iso
+            build/SHA256SUMS.txt
+          if-no-files-found: error
