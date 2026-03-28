@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+#include "interrupts.h"
 #include "keyboard.h"
 #include "print.h"
 #include "terminal.h"
@@ -33,6 +34,8 @@ static void draw_lock_status_bar(void) {
 
 void kernel_main(void) {
     terminal_initialize();
+    interrupts_initialize();
+    interrupts_enable();
     draw_lock_status_bar();
 
     terminal_set_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_GREEN);
@@ -52,7 +55,7 @@ void kernel_main(void) {
     kprint_dec(2026);
     terminal_write_char('\n');
 
-    kprintln("Keyboard input is ready (PS/2 polling, US scancodes).");
+    kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
     kprintln("Type below:");
     kprint("> ");
 

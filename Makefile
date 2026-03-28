@@ -13,10 +13,10 @@ KERNEL_BIN := $(BUILD_DIR)/kernel.bin
 KERNEL_ELF := $(BUILD_DIR)/kernel.elf
 ISO_IMAGE := $(BUILD_DIR)/kernel.iso
 
-SRC_ASM := src/boot.s
-SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c
+SRC_ASM := src/boot.s src/isr.s
+SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c src/interrupts.c
 
-OBJ_ASM := $(BUILD_DIR)/boot.o
+OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
 
 .PHONY: all clean run iso check-tools
@@ -33,7 +33,7 @@ check-tools:
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
-$(OBJ_ASM): $(SRC_ASM) | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: src/%.s | $(BUILD_DIR)
 	$(AS) $(ASFLAGS) $< -o $@
 
 $(BUILD_DIR)/%.o: src/%.c | $(BUILD_DIR)

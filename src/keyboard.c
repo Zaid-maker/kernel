@@ -88,6 +88,24 @@ static uint8_t caps_lock = 0;
 static uint8_t num_lock = 0;
 static uint8_t scroll_lock = 0;
 
+enum {
+    KEYBOARD_QUEUE_SIZE = 128
+};
+
+static volatile char keyboard_queue[KEYBOARD_QUEUE_SIZE];
+static volatile uint8_t keyboard_queue_head = 0;
+static volatile uint8_t keyboard_queue_tail = 0;
+
+static void keyboard_queue_push(char c) {
+    const uint8_t next = (uint8_t)((keyboard_queue_head + 1u) % KEYBOARD_QUEUE_SIZE);
+    if (next == keyboard_queue_tail) {
+        return;
+    }
+
+    keyboard_queue[keyboard_queue_head] = c;
+    keyboard_queue_head = next;
+}
+
 static const char scancode_map[128] = {
     0,
     27,
@@ -128,97 +146,114 @@ static const char scancode_map_shift[128] = {
     0,
 };
 
-char keyboard_read_char(void) {
-    if ((port_inb(0x64) & 1u) == 0) {
-        return 0;
-    }
-
-    uint8_t scancode = port_inb(0x60);
+void keyboard_handle_irq(void) {
+    const uint8_t scancode = port_inb(0x60);
 
     if (scancode == 0xE0u) {
-        return 0;
+        return;
     }
 
     if (scancode == 0x2Au || scancode == 0x36u) {
         shift_pressed = 1;
-        return 0;
+        return;
     }
 
     if (scancode == 0xAAu || scancode == 0xB6u) {
         shift_pressed = 0;
-        return 0;
+        return;
     }
 
     if (scancode == 0x3Au) {
         caps_lock ^= 1u;
         keyboard_update_leds(caps_lock, num_lock, scroll_lock);
-        return 0;
+        return;
     }
 
     if (scancode == 0x45u) {
         num_lock ^= 1u;
         keyboard_update_leds(caps_lock, num_lock, scroll_lock);
-        return 0;
+        return;
     }
 
     if (scancode == 0x46u) {
         scroll_lock ^= 1u;
         keyboard_update_leds(caps_lock, num_lock, scroll_lock);
-        return 0;
+        return;
     }
 
     if ((scancode & 0x80u) != 0) {
-        return 0;
+        return;
     }
 
     if (scancode >= 128u) {
-        return 0;
+        return;
     }
 
     if (scancode >= 0x47u && scancode <= 0x53u) {
         if (scancode == 0x4Au) {
-            return '-';
+            keyboard_queue_push('-');
+            return;
         }
 
         if (scancode == 0x4Eu) {
-            return '+';
+            keyboard_queue_push('+');
+            return;
         }
 
         if (num_lock != 0u && shift_pressed == 0u) {
+            char keypad = 0;
             switch (scancode) {
-                case 0x47u: return '7';
-                case 0x48u: return '8';
-                case 0x49u: return '9';
-                case 0x4Bu: return '4';
-                case 0x4Cu: return '5';
-                case 0x4Du: return '6';
-                case 0x4Fu: return '1';
-                case 0x50u: return '2';
-                case 0x51u: return '3';
-                case 0x52u: return '0';
-                case 0x53u: return '.';
-                default: return 0;
+                case 0x47u: keypad = '7'; break;
+                case 0x48u: keypad = '8'; break;
+                case 0x49u: keypad = '9'; break;
+                case 0x4Bu: keypad = '4'; break;
+                case 0x4Cu: keypad = '5'; break;
+                case 0x4Du: keypad = '6'; break;
+                case 0x4Fu: keypad = '1'; break;
+                case 0x50u: keypad = '2'; break;
+                case 0x51u: keypad = '3'; break;
+                case 0x52u: keypad = '0'; break;
+                case 0x53u: keypad = '.'; break;
+                default: keypad = 0; break;
+            }
+
+            if (keypad != 0) {
+                keyboard_queue_push(keypad);
             }
         }
 
-        return 0;
+        return;
     }
 
     char out = shift_pressed ? scancode_map_shift[scancode] : scancode_map[scancode];
     if (out == 0) {
-        return 0;
+        return;
     }
 
     if (caps_lock != 0u) {
         if (is_letter(out)) {
-            return to_upper(out);
+            out = to_upper(out);
+            keyboard_queue_push(out);
+            return;
         }
 
         if (is_upper_letter(out)) {
-            return to_lower(out);
+            out = to_lower(out);
+            keyboard_queue_push(out);
+            return;
         }
     }
 
+    keyboard_queue_push(out);
+}
+
+char keyboard_read_char(void) {
+    if (keyboard_queue_head == keyboard_queue_tail) {
+        return 0;
+    }
+
+    const char out = keyboard_queue[keyboard_queue_tail];
+    keyboard_queue_tail = (uint8_t)((keyboard_queue_tail + 1u) % KEYBOARD_QUEUE_SIZE);
     return out;
 }
 
