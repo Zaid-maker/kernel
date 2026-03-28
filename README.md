@@ -13,6 +13,29 @@ SigmaBoot is a tiny 32-bit freestanding kernel that boots with GRUB and provides
 > Breaking changes can happen between releases, features may be incomplete or unstable,
 > and it is not intended for production or critical systems.
 
+## FAQ
+
+### Why does this project exist?
+
+Project SigmaBoot exists as a learning-first bare metal kernel project.
+The goal is to build core OS components from scratch in small, understandable steps.
+
+### Who is this for?
+
+Anyone learning low-level systems programming, x86 boot flow, interrupts, and early kernel architecture.
+
+### Is this production ready?
+
+No. This is alpha-stage experimental software and is expected to change frequently.
+
+### Why date-style versions?
+
+Date-style versions make milestone history easy to track and keep release progression clear during rapid iteration.
+
+### What can I do with it today?
+
+You can boot in QEMU, use the shell commands, inspect lock state and uptime, and view the Multiboot memory map.
+
 ## Features
 
 - Multiboot-compliant boot path with GRUB.
