@@ -13,6 +13,12 @@ A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text
 - Lock key LED synchronization for Caps Lock, Num Lock, and Scroll Lock.
 - Persistent bottom-row lock status bar showing CAPS/NUM/SCRL states.
 
+## Project Website
+
+- Source files are in `site/`.
+- Open `site/index.html` locally to preview.
+- GitHub Pages deployment is automated by `.github/workflows/deploy-site.yml`.
+
 ## Project Layout
 
 - `src/boot.s`: Multiboot header and assembly entrypoint.
