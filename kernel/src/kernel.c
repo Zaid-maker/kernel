@@ -15,12 +15,17 @@
 
 enum {
     SHELL_INPUT_INITIAL = 128,
-    SHELL_INPUT_MAX = 1024
+    SHELL_INPUT_MAX = 1024,
+    SHELL_HISTORY_SIZE = 16,
+    STATUS_UPTIME_BUFFER_SIZE = 24
 };
 
 static uint32_t g_multiboot_magic = 0;
 static const struct multiboot_info* g_multiboot_info = (const struct multiboot_info*)0;
-static char* g_last_command = (char*)0;
+static char* g_status_uptime_buffer = (char*)0;
+static char* g_command_history[SHELL_HISTORY_SIZE];
+static uint32_t g_command_history_head = 0;
+static uint32_t g_command_history_count = 0;
 
 static int str_equal(const char* a, const char* b) {
     size_t i = 0;
@@ -75,34 +80,61 @@ static uint32_t cstr_len(const char* s) {
     return n;
 }
 
-static int shell_store_last_command(const char* cmd) {
-    uint32_t len = cstr_len(cmd);
-
-    char* next = (char*)kmalloc(len + 1u);
-    if (next == 0) {
+static char* cstr_dup_heap(const char* s) {
+    const uint32_t len = cstr_len(s);
+    char* out = (char*)kmalloc(len + 1u);
+    if (out == 0) {
         return 0;
     }
 
     for (uint32_t i = 0; i < len; ++i) {
-        next[i] = cmd[i];
+        out[i] = s[i];
     }
-    next[len] = '\0';
+    out[len] = '\0';
+    return out;
+}
 
-    if (g_last_command != 0) {
-        kfree(g_last_command);
+static int shell_store_history(const char* cmd) {
+    uint32_t len = cstr_len(cmd);
+    if (len == 0u) {
+        return 1;
     }
-    g_last_command = next;
+
+    char* next = cstr_dup_heap(cmd);
+    if (next == 0) {
+        return 0;
+    }
+
+    if (g_command_history_count < SHELL_HISTORY_SIZE) {
+        const uint32_t idx = (g_command_history_head + g_command_history_count) % SHELL_HISTORY_SIZE;
+        g_command_history[idx] = next;
+        ++g_command_history_count;
+        return 1;
+    }
+
+    char* replaced = g_command_history[g_command_history_head];
+    if (replaced != 0) {
+        kfree(replaced);
+    }
+    g_command_history[g_command_history_head] = next;
+    g_command_history_head = (g_command_history_head + 1u) % SHELL_HISTORY_SIZE;
     return 1;
 }
 
 static void shell_print_history(void) {
-    if (g_last_command == 0 || g_last_command[0] == '\0') {
+    if (g_command_history_count == 0u) {
         kprintln("No command history yet.");
         return;
     }
 
-    kprint("Last command: ");
-    kprintln(g_last_command);
+    kprintln("Recent commands:");
+    for (uint32_t i = 0; i < g_command_history_count; ++i) {
+        const uint32_t idx = (g_command_history_head + i) % SHELL_HISTORY_SIZE;
+        kprint(" ");
+        kprint_dec(i + 1u);
+        kprint(": ");
+        kprintln(g_command_history[idx]);
+    }
 }
 
 static void shell_print_heap(void) {
@@ -298,7 +330,8 @@ static void draw_lock_status_bar(void) {
     const uint32_t seconds = timer_seconds();
     const uint32_t centis = timer_centiseconds();
 
-    char uptime[16];
+    char uptime_fallback[STATUS_UPTIME_BUFFER_SIZE];
+    char* uptime = g_status_uptime_buffer != 0 ? g_status_uptime_buffer : uptime_fallback;
     uptime[0] = 'T';
     uptime[1] = '+';
 
@@ -356,7 +389,13 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_write_char('\n');
 
     kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, history):");
+
+    g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
+    if (g_status_uptime_buffer == 0) {
+        kprintln("Warning: status bar uptime uses stack fallback (heap alloc failed).");
+    }
+
     kprint("> ");
 
     char* input = (char*)kmalloc(SHELL_INPUT_INITIAL);
@@ -406,7 +445,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
         if (key == '\n') {
             terminal_write_char('\n');
             input[input_len] = '\0';
-            if (input[0] != '\0' && !shell_store_last_command(input)) {
+            if (input[0] != '\0' && !shell_store_history(input)) {
                 kprintln("Warning: failed to store command history.");
             }
             shell_run_command(input);

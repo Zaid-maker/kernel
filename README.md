@@ -116,6 +116,16 @@ make -C kernel iso
 make -C kernel run
 ```
 
+## Quick Regression Checklist
+
+- Boot reaches shell prompt and prints kernel version.
+- `help` lists `history` in the command list.
+- Enter more than 128 characters in one command without crashing (dynamic input growth).
+- Use backspace during long input; cursor and command state remain in sync.
+- Run several commands, then `history` prints recent commands in order.
+- Run more than 16 commands; `history` keeps only the most recent entries.
+- Status bar continues updating lock states and uptime while typing commands.
+
 ## Clean
 
 ```bash
