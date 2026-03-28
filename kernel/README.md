@@ -21,10 +21,10 @@ Expect breaking changes, incomplete features, and possible instability.
 
 ## Project Website
 
-- Source files are in `site/`.
-- Open `site/index.html` locally to preview.
-- Documentation page is `site/docs.html`.
-- GitHub Pages deployment is automated by `.github/workflows/deploy-site.yml`.
+- Source files are in `../site/`.
+- Open `../site/index.html` locally to preview.
+- Documentation page is `../site/docs.html`.
+- GitHub Pages deployment is automated by `../.github/workflows/deploy-site.yml`.
 
 ## Project Layout
 

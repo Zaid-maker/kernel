@@ -5,12 +5,21 @@ on:
     branches:
       - main
       - master
+    paths:
+      - kernel/**
+      - .github/workflows/build-kernel.yml
   pull_request:
+    paths:
+      - kernel/**
+      - .github/workflows/build-kernel.yml
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kernel
 
     steps:
       - name: Checkout
@@ -45,8 +54,8 @@ jobs:
         with:
           name: kernel-build
           path: |
-            build/kernel.bin
-            build/kernel.elf
-            build/kernel.iso
-            build/SHA256SUMS.txt
+            kernel/build/kernel.bin
+            kernel/build/kernel.elf
+            kernel/build/kernel.iso
+            kernel/build/SHA256SUMS.txt
           if-no-files-found: error

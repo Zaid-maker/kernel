@@ -11,12 +11,45 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kernel
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect kernel changes since previous tag
+        id: change_check
+        env:
+          CURRENT_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -e
+
+          prev_tag="$(git tag --sort=-creatordate | grep -Fxv "$CURRENT_TAG" | head -n 1 || true)"
+
+          if [ -z "$prev_tag" ]; then
+            echo "No previous tag found; treating as changed."
+            echo "kernel_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "$prev_tag" "$CURRENT_TAG" -- kernel; then
+            echo "No kernel/ changes between $prev_tag and $CURRENT_TAG."
+            echo "kernel_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "kernel/ changed between $prev_tag and $CURRENT_TAG."
+            echo "kernel_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip note (no kernel changes)
+        if: steps.change_check.outputs.kernel_changed != 'true'
+        run: echo "Skipping release asset build/upload because kernel/ did not change since previous tag."
 
       - name: Install dependencies
+        if: steps.change_check.outputs.kernel_changed == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -29,23 +62,27 @@ jobs:
             mtools
 
       - name: Build kernel binary
+        if: steps.change_check.outputs.kernel_changed == 'true'
         run: make all CROSS_COMPILE=
 
       - name: Build bootable ISO
+        if: steps.change_check.outputs.kernel_changed == 'true'
         run: make iso CROSS_COMPILE=
 
       - name: Generate checksums
+        if: steps.change_check.outputs.kernel_changed == 'true'
         run: |
           sha256sum build/kernel.bin > build/SHA256SUMS.txt
           sha256sum build/kernel.elf >> build/SHA256SUMS.txt
           sha256sum build/kernel.iso >> build/SHA256SUMS.txt
 
       - name: Upload assets to GitHub Release
+        if: steps.change_check.outputs.kernel_changed == 'true'
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/kernel.bin
-            build/kernel.elf
-            build/kernel.iso
-            build/SHA256SUMS.txt
+            kernel/build/kernel.bin
+            kernel/build/kernel.elf
+            kernel/build/kernel.iso
+            kernel/build/SHA256SUMS.txt
           fail_on_unmatched_files: true
