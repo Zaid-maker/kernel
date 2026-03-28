@@ -20,6 +20,7 @@ Expect breaking changes, incomplete features, and possible instability.
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
 - PIT timer IRQ0 support with uptime display in the status bar.
+- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`.
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning
