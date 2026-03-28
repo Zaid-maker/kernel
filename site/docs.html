@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Kernel Docs | Architecture and Build Guide</title>
+  <meta name="description" content="Documentation for the Minimal Kernel project: architecture, boot flow, keyboard IRQ path, and release pipeline.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <header class="topbar">
+    <div class="logo">MK</div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#flow">Boot Flow</a>
+      <a href="#build">Build</a>
+      <a href="#files">Source Map</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero reveal">
+      <p class="eyebrow">Documentation</p>
+      <h1>Kernel Docs</h1>
+      <p class="subtitle">
+        Technical reference for startup flow, interrupt model, keyboard handling,
+        and release pipeline behavior.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://github.com/Zaid-maker/kernel" target="_blank" rel="noopener noreferrer">Repository</a>
+        <a class="btn btn-ghost" href="index.html">Back to Landing</a>
+      </div>
+    </section>
+
+    <section id="architecture" class="panel reveal stagger">
+      <h2>Architecture Snapshot</h2>
+      <div class="doc-grid">
+        <article class="doc-card">
+          <h3>Boot Layer</h3>
+          <p><span class="mono">src/boot.s</span> defines Multiboot header, initializes stack, and jumps to <span class="mono">kernel_main</span>.</p>
+        </article>
+        <article class="doc-card">
+          <h3>Kernel Core</h3>
+          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, and interactive loop with lock-state UI updates.</p>
+        </article>
+        <article class="doc-card">
+          <h3>Display</h3>
+          <p><span class="mono">src/terminal.c</span> handles text output, scrolling, cursor behavior, and fixed-row status rendering.</p>
+        </article>
+        <article class="doc-card">
+          <h3>Input + IRQ</h3>
+          <p><span class="mono">src/interrupts.c</span> remaps PIC and loads IDT. <span class="mono">src/keyboard.c</span> handles IRQ scancodes and key queue.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="flow" class="panel reveal stagger">
+      <h2>Boot and Input Flow</h2>
+      <ol class="doc-list">
+        <li>GRUB loads kernel using Multiboot and transfers control to <span class="mono">_start</span>.</li>
+        <li>Assembly startup sets stack and calls <span class="mono">kernel_main</span>.</li>
+        <li>Kernel initializes terminal, sets IDT, remaps PIC, and enables interrupts.</li>
+        <li>Keyboard IRQ1 enters <span class="mono">isr_keyboard</span>, dispatches to C handler, sends EOI.</li>
+        <li>Translated characters are queued and consumed by the prompt loop.</li>
+      </ol>
+      <div class="code-box">
+        <h3>IRQ Path (summary)</h3>
+        <pre><code>IRQ1 (vector 0x21)
+  -> isr_keyboard (src/isr.s)
+  -> interrupts_handle_keyboard_irq()
+  -> keyboard_handle_irq()
+  -> queue char + update lock LEDs/UI
+  -> PIC EOI</code></pre>
+      </div>
+    </section>
+
+    <section id="build" class="panel accent reveal stagger">
+      <h2>Build, Test, Release</h2>
+      <div class="split">
+        <div class="code-box">
+          <h3>Local Build</h3>
+          <pre><code>make all CROSS_COMPILE=
+make iso CROSS_COMPILE=
+qemu-system-i386 -cdrom build/kernel.iso</code></pre>
+        </div>
+        <div class="code-box">
+          <h3>GitHub Actions</h3>
+          <ul>
+            <li><span class="mono">build-kernel.yml</span>: compile + upload artifacts</li>
+            <li><span class="mono">release-kernel.yml</span>: attach assets to releases</li>
+            <li><span class="mono">deploy-site.yml</span>: publish static docs/landing to Pages</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="files" class="panel reveal stagger">
+      <h2>Source Map</h2>
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">src/boot.s</td>
+            <td>Multiboot header and stack setup</td>
+          </tr>
+          <tr>
+            <td class="mono">src/isr.s</td>
+            <td>Assembly ISR entry stubs</td>
+          </tr>
+          <tr>
+            <td class="mono">src/interrupts.c</td>
+            <td>IDT init, PIC remap, IRQ dispatch</td>
+          </tr>
+          <tr>
+            <td class="mono">src/keyboard.c</td>
+            <td>Scancode handling, lock states, input queue</td>
+          </tr>
+          <tr>
+            <td class="mono">src/terminal.c</td>
+            <td>VGA text rendering and status row support</td>
+          </tr>
+          <tr>
+            <td class="mono">Makefile</td>
+            <td>Build and ISO generation rules</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+    <p>Minimal Kernel Docs • Keep it small, inspectable, and reproducible.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

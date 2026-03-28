@@ -18,6 +18,7 @@ A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text
 
 - Source files are in `site/`.
 - Open `site/index.html` locally to preview.
+- Documentation page is `site/docs.html`.
 - GitHub Pages deployment is automated by `.github/workflows/deploy-site.yml`.
 
 ## Project Layout

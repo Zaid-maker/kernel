@@ -295,6 +295,69 @@ h1 {
   color: var(--ink-dim);
 }
 
+.doc-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.doc-card {
+  border: 1px solid #365163;
+  border-radius: 12px;
+  padding: 14px;
+  background: rgba(12, 26, 35, 0.78);
+}
+
+.doc-card h3 {
+  margin: 0 0 8px;
+}
+
+.doc-card p {
+  margin: 0;
+  color: var(--ink-dim);
+  line-height: 1.45;
+}
+
+.doc-list {
+  margin: 0 0 14px 20px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+
+.doc-list li {
+  margin-bottom: 8px;
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid #365163;
+}
+
+.doc-table th,
+.doc-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2f4658;
+}
+
+.doc-table thead th {
+  color: #d9f8ee;
+  background: rgba(19, 49, 65, 0.76);
+}
+
+.doc-table tbody td {
+  color: var(--ink-dim);
+  background: rgba(10, 21, 28, 0.5);
+}
+
+.doc-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
 footer {
   position: relative;
   z-index: 1;
@@ -331,7 +394,8 @@ footer {
 
 @media (max-width: 860px) {
   .card-grid,
-  .split {
+  .split,
+  .doc-grid {
     grid-template-columns: 1fr;
   }
 
