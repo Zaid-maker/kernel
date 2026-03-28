@@ -52,6 +52,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
 - Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
+- Heap allocator groundwork with `kmalloc`/`kfree` and `heap` shell stats command.
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning
@@ -81,6 +82,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - `kernel/src/timer.c`, `kernel/src/timer.h`: PIT configuration and uptime counters.
 - `kernel/src/multiboot.h`: Multiboot data structures used for boot-time memory map parsing.
 - `kernel/src/pmm.c`, `kernel/src/pmm.h`: Physical memory manager bitmap and frame stats APIs.
+- `kernel/src/heap.c`, `kernel/src/heap.h`: Heap allocator (`kmalloc`/`kfree`) and heap statistics.
 - `kernel/src/isr.s`: interrupt service routine stubs.
 - `kernel/linker.ld`: Links the kernel at 1 MiB.
 - `kernel/grub/grub.cfg`: GRUB menu entry.

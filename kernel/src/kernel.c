@@ -3,6 +3,7 @@
 #include "interrupts.h"
 #include "keyboard.h"
 #include "multiboot.h"
+#include "heap.h"
 #include "pmm.h"
 #include "print.h"
 #include "timer.h"
@@ -60,6 +61,28 @@ static void shell_print_help(void) {
     kprintln(" - uptime");
     kprintln(" - memmap");
     kprintln(" - pmm");
+    kprintln(" - heap");
+}
+
+static void shell_print_heap(void) {
+    const struct heap_stats stats = heap_get_stats();
+
+    kprintln("Heap stats:");
+    kprint(" total bytes : ");
+    kprint_hex(stats.total_bytes);
+    terminal_write_char('\n');
+    kprint(" used bytes  : ");
+    kprint_hex(stats.used_bytes);
+    terminal_write_char('\n');
+    kprint(" free bytes  : ");
+    kprint_hex(stats.free_bytes);
+    terminal_write_char('\n');
+    kprint(" blocks      : ");
+    kprint_dec(stats.block_count);
+    terminal_write_char('\n');
+    kprint(" free blocks : ");
+    kprint_dec(stats.free_blocks);
+    terminal_write_char('\n');
 }
 
 static void shell_print_pmm(void) {
@@ -191,6 +214,11 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "heap")) {
+        shell_print_heap();
+        return;
+    }
+
     kprint("Unknown command: ");
     kprintln(cmd);
 }
@@ -256,6 +284,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     terminal_initialize();
     pmm_initialize(g_multiboot_magic, g_multiboot_info);
+    heap_initialize();
     interrupts_initialize();
     timer_initialize(100u);
     interrupts_enable();
@@ -281,7 +310,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_write_char('\n');
 
     kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap):");
     kprint("> ");
 
     char input[SHELL_INPUT_MAX];
