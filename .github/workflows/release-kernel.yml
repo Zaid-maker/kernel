@@ -63,11 +63,11 @@ jobs:
 
       - name: Build kernel binary
         if: steps.change_check.outputs.kernel_changed == 'true'
-        run: make all CROSS_COMPILE=
+        run: make all CROSS_COMPILE= KERNEL_VERSION=${{ github.event.release.tag_name }}
 
       - name: Build bootable ISO
         if: steps.change_check.outputs.kernel_changed == 'true'
-        run: make iso CROSS_COMPILE=
+        run: make iso CROSS_COMPILE= KERNEL_VERSION=${{ github.event.release.tag_name }}
 
       - name: Generate checksums
         if: steps.change_check.outputs.kernel_changed == 'true'
@@ -85,4 +85,5 @@ jobs:
             kernel/build/kernel.elf
             kernel/build/kernel.iso
             kernel/build/SHA256SUMS.txt
+            kernel/VERSION
           fail_on_unmatched_files: true

@@ -5,6 +5,10 @@
 #include "print.h"
 #include "terminal.h"
 
+#ifndef KERNEL_VERSION
+#define KERNEL_VERSION "v0.0.0-dev"
+#endif
+
 static void draw_lock_status_bar(void) {
     terminal_fill_row(24, ' ', VGA_COLOR_WHITE, VGA_COLOR_BLUE);
     terminal_write_at("LOCKS", 24, 1, VGA_COLOR_WHITE, VGA_COLOR_BLUE);
@@ -42,6 +46,8 @@ void kernel_main(void) {
     kprintln("  MINIMAL KERNEL  ");
 
     terminal_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+    kprint("Kernel version: ");
+    kprintln(KERNEL_VERSION);
     kprintln("Kernel booted successfully.");
     kprintln("Features:");
     kprintln(" - VGA terminal driver");

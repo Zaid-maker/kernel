@@ -58,4 +58,5 @@ jobs:
             kernel/build/kernel.elf
             kernel/build/kernel.iso
             kernel/build/SHA256SUMS.txt
+            kernel/VERSION
           if-no-files-found: error

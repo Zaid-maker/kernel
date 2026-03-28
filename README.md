@@ -18,6 +18,15 @@ Expect breaking changes, incomplete features, and possible instability.
 - Lock key LED synchronization for Caps Lock, Num Lock, and Scroll Lock.
 - Persistent bottom-row lock status bar showing CAPS/NUM/SCRL states.
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
+- Kernel version string embedded at build time and shown on boot.
+
+## Versioning
+
+- Canonical kernel version is stored in `kernel/VERSION`.
+- Local builds use `kernel/VERSION` automatically.
+- Release pipeline overrides with release tag so shipped assets match the tag exactly.
+- Optional manual override:
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260328.1`
 
 ## Project Website
 

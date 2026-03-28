@@ -7,6 +7,10 @@ CFLAGS := -std=gnu11 -ffreestanding -O2 -Wall -Wextra -m32
 ASFLAGS := --32
 LDFLAGS := -T linker.ld -m elf_i386
 
+VERSION_FILE := VERSION
+KERNEL_VERSION ?= $(shell cat $(VERSION_FILE) 2>/dev/null || echo v0.0.0-dev)
+CFLAGS += -DKERNEL_VERSION=\"$(KERNEL_VERSION)\"
+
 BUILD_DIR := build
 ISO_DIR := $(BUILD_DIR)/iso
 KERNEL_BIN := $(BUILD_DIR)/kernel.bin
