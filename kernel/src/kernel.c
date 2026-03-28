@@ -3,6 +3,7 @@
 #include "interrupts.h"
 #include "keyboard.h"
 #include "multiboot.h"
+#include "pmm.h"
 #include "print.h"
 #include "timer.h"
 #include "terminal.h"
@@ -58,6 +59,35 @@ static void shell_print_help(void) {
     kprintln(" - locks");
     kprintln(" - uptime");
     kprintln(" - memmap");
+    kprintln(" - pmm");
+}
+
+static void shell_print_pmm(void) {
+    const struct pmm_stats stats = pmm_get_stats();
+    const uint64_t total_bytes = (uint64_t)stats.total_frames * 4096u;
+    const uint64_t used_bytes = (uint64_t)stats.used_frames * 4096u;
+    const uint64_t free_bytes = (uint64_t)stats.free_frames * 4096u;
+
+    kprintln("PMM stats:");
+    kprint(" total frames: ");
+    kprint_dec(stats.total_frames);
+    terminal_write_char('\n');
+    kprint(" used frames : ");
+    kprint_dec(stats.used_frames);
+    terminal_write_char('\n');
+    kprint(" free frames : ");
+    kprint_dec(stats.free_frames);
+    terminal_write_char('\n');
+
+    kprint(" total bytes : ");
+    kprint_hex64(total_bytes);
+    terminal_write_char('\n');
+    kprint(" used bytes  : ");
+    kprint_hex64(used_bytes);
+    terminal_write_char('\n');
+    kprint(" free bytes  : ");
+    kprint_hex64(free_bytes);
+    terminal_write_char('\n');
 }
 
 static const char* mem_type_name(uint32_t type) {
@@ -156,6 +186,11 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "pmm")) {
+        shell_print_pmm();
+        return;
+    }
+
     kprint("Unknown command: ");
     kprintln(cmd);
 }
@@ -220,6 +255,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     g_multiboot_info = (const struct multiboot_info*)(uintptr_t)multiboot_info_addr;
 
     terminal_initialize();
+    pmm_initialize(g_multiboot_magic, g_multiboot_info);
     interrupts_initialize();
     timer_initialize(100u);
     interrupts_enable();
@@ -245,7 +281,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_write_char('\n');
 
     kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
-    kprintln("Type below (help, clear, version, locks, uptime, memmap):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm):");
     kprint("> ");
 
     char input[SHELL_INPUT_MAX];

@@ -49,7 +49,7 @@
         </article>
         <article class="doc-card">
           <h3>Kernel Core</h3>
-          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, tiny shell command dispatch, and memmap rendering.</p>
+          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, shell command dispatch, memmap rendering, and PMM stats.</p>
         </article>
         <article class="doc-card">
           <h3>Display</h3>
@@ -265,6 +265,10 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
           <tr>
             <td class="mono">kernel/src/multiboot.h</td>
             <td>Multiboot structs and flags for memory map parsing</td>
+          </tr>
+          <tr>
+            <td class="mono">kernel/src/pmm.c</td>
+            <td>Bitmap-based physical memory manager and frame statistics</td>
           </tr>
           <tr>
             <td class="mono">kernel/Makefile</td>

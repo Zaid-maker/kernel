@@ -51,6 +51,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - PIT timer IRQ0 support with uptime display in the status bar.
 - Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
+- Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning
@@ -79,6 +80,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - `kernel/src/interrupts.c`, `kernel/src/interrupts.h`: IDT setup, PIC remap, and IRQ dispatch.
 - `kernel/src/timer.c`, `kernel/src/timer.h`: PIT configuration and uptime counters.
 - `kernel/src/multiboot.h`: Multiboot data structures used for boot-time memory map parsing.
+- `kernel/src/pmm.c`, `kernel/src/pmm.h`: Physical memory manager bitmap and frame stats APIs.
 - `kernel/src/isr.s`: interrupt service routine stubs.
 - `kernel/linker.ld`: Links the kernel at 1 MiB.
 - `kernel/grub/grub.cfg`: GRUB menu entry.
