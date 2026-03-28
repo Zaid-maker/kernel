@@ -17,6 +17,7 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="#architecture">Architecture</a>
+      <a href="#interrupt-flow">Interrupt Flow</a>
       <a href="#flow">Boot Flow</a>
       <a href="#build">Build</a>
       <a href="#faq">FAQ</a>
@@ -62,6 +63,125 @@
           <h3>Timing</h3>
           <p><span class="mono">src/timer.c</span> programs PIT channel 0 and tracks uptime ticks consumed by the status bar.</p>
         </article>
+      </div>
+    </section>
+
+    <section class="panel reveal stagger" id="architecture-diagram">
+      <h2>Architecture Diagram</h2>
+      <p class="subtitle">High-level flow from bootloader handoff to interrupt-driven subsystems and user command handling.</p>
+      <div class="diagram-wrap" role="img" aria-label="Project SigmaBoot architecture diagram">
+        <svg class="arch-diagram" viewBox="0 0 980 540" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#9ee7ff" />
+            </marker>
+          </defs>
+
+          <rect x="30" y="30" width="920" height="480" rx="14" class="d-shell" />
+
+          <rect x="60" y="60" width="260" height="110" rx="10" class="d-box d-boot" />
+          <text x="80" y="95" class="d-title">Bootloader Layer</text>
+          <text x="80" y="122" class="d-text">GRUB + Multiboot header</text>
+          <text x="80" y="145" class="d-text">passes magic + info pointer</text>
+
+          <rect x="360" y="60" width="260" height="110" rx="10" class="d-box d-core" />
+          <text x="380" y="95" class="d-title">Kernel Core</text>
+          <text x="380" y="122" class="d-text">kernel_main, shell, memmap</text>
+          <text x="380" y="145" class="d-text">version + command dispatch</text>
+
+          <rect x="660" y="60" width="260" height="110" rx="10" class="d-box d-display" />
+          <text x="680" y="95" class="d-title">Display Layer</text>
+          <text x="680" y="122" class="d-text">VGA terminal + status row</text>
+          <text x="680" y="145" class="d-text">locks + uptime rendering</text>
+
+          <rect x="120" y="240" width="300" height="110" rx="10" class="d-box d-int" />
+          <text x="140" y="275" class="d-title">Interrupt Layer</text>
+          <text x="140" y="302" class="d-text">IDT + PIC remap + ISRs</text>
+          <text x="140" y="325" class="d-text">exceptions + IRQ dispatch</text>
+
+          <rect x="470" y="240" width="300" height="110" rx="10" class="d-box d-io" />
+          <text x="490" y="275" class="d-title">I/O Subsystems</text>
+          <text x="490" y="302" class="d-text">Keyboard IRQ1 queue</text>
+          <text x="490" y="325" class="d-text">PIT timer IRQ0 ticks</text>
+
+          <rect x="255" y="400" width="470" height="80" rx="10" class="d-box d-user" />
+          <text x="275" y="433" class="d-title">User Interaction</text>
+          <text x="275" y="457" class="d-text">Commands: help, clear, version, locks, uptime, memmap</text>
+
+          <line x1="320" y1="115" x2="360" y2="115" class="d-arrow" marker-end="url(#arrow)" />
+          <line x1="620" y1="115" x2="660" y2="115" class="d-arrow" marker-end="url(#arrow)" />
+
+          <line x1="490" y1="170" x2="490" y2="238" class="d-arrow" marker-end="url(#arrow)" />
+          <line x1="420" y1="295" x2="470" y2="295" class="d-arrow" marker-end="url(#arrow)" />
+          <line x1="270" y1="350" x2="360" y2="398" class="d-arrow" marker-end="url(#arrow)" />
+          <line x1="620" y1="350" x2="560" y2="398" class="d-arrow" marker-end="url(#arrow)" />
+        </svg>
+      </div>
+    </section>
+
+    <section class="panel reveal stagger" id="interrupt-flow">
+      <h2>Interrupt Flow Diagram</h2>
+      <p class="subtitle">Detailed interrupt routing for exceptions, PIT timer ticks, and keyboard events.</p>
+      <div class="diagram-wrap" role="img" aria-label="Interrupt flow diagram for Project SigmaBoot">
+        <svg class="arch-diagram" viewBox="0 0 980 560" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow-flow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#ffd8a0" />
+            </marker>
+            <marker id="arrow-flow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L9,3 z" fill="#9ee7ff" />
+            </marker>
+          </defs>
+
+          <rect x="30" y="30" width="920" height="500" rx="14" class="d-shell" />
+
+          <rect x="70" y="70" width="250" height="90" rx="10" class="d-box d-int" />
+          <text x="90" y="102" class="d-title">CPU Exception</text>
+          <text x="90" y="128" class="d-text">vectors 0-31</text>
+
+          <rect x="365" y="70" width="250" height="90" rx="10" class="d-box d-core" />
+          <text x="385" y="102" class="d-title">IDT Gate</text>
+          <text x="385" y="128" class="d-text">isr_exception_N</text>
+
+          <rect x="660" y="70" width="250" height="90" rx="10" class="d-box d-user" />
+          <text x="680" y="102" class="d-title">Fault Screen</text>
+          <text x="680" y="128" class="d-text">vector / EIP / EFLAGS</text>
+
+          <rect x="70" y="230" width="250" height="90" rx="10" class="d-box d-io" />
+          <text x="90" y="262" class="d-title">IRQ0 Timer</text>
+          <text x="90" y="288" class="d-text">PIT channel 0 tick</text>
+
+          <rect x="365" y="230" width="250" height="90" rx="10" class="d-box d-core" />
+          <text x="385" y="262" class="d-title">Timer ISR</text>
+          <text x="385" y="288" class="d-text">timer_handle_irq + EOI</text>
+
+          <rect x="660" y="230" width="250" height="90" rx="10" class="d-box d-display" />
+          <text x="680" y="262" class="d-title">Status Bar</text>
+          <text x="680" y="288" class="d-text">uptime T+X.XXs</text>
+
+          <rect x="70" y="390" width="250" height="90" rx="10" class="d-box d-boot" />
+          <text x="90" y="422" class="d-title">IRQ1 Keyboard</text>
+          <text x="90" y="448" class="d-text">PS/2 scancode input</text>
+
+          <rect x="365" y="390" width="250" height="90" rx="10" class="d-box d-core" />
+          <text x="385" y="422" class="d-title">Keyboard ISR</text>
+          <text x="385" y="448" class="d-text">queue + lock LEDs + EOI</text>
+
+          <rect x="660" y="390" width="250" height="90" rx="10" class="d-box d-display" />
+          <text x="680" y="422" class="d-title">Shell Loop</text>
+          <text x="680" y="448" class="d-text">commands + prompt output</text>
+
+          <line x1="320" y1="115" x2="365" y2="115" class="d-arrow-warm" marker-end="url(#arrow-flow)" />
+          <line x1="615" y1="115" x2="660" y2="115" class="d-arrow-warm" marker-end="url(#arrow-flow)" />
+
+          <line x1="320" y1="275" x2="365" y2="275" class="d-arrow" marker-end="url(#arrow-flow-blue)" />
+          <line x1="615" y1="275" x2="660" y2="275" class="d-arrow" marker-end="url(#arrow-flow-blue)" />
+
+          <line x1="320" y1="435" x2="365" y2="435" class="d-arrow" marker-end="url(#arrow-flow-blue)" />
+          <line x1="615" y1="435" x2="660" y2="435" class="d-arrow" marker-end="url(#arrow-flow-blue)" />
+
+          <text x="742" y="344" class="d-text">EOI to PIC</text>
+        </svg>
       </div>
     </section>
 

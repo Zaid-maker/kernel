@@ -382,6 +382,83 @@ h1 {
   border-bottom: none;
 }
 
+.diagram-wrap {
+  margin-top: 12px;
+  border: 1px solid #365163;
+  border-radius: 12px;
+  background: rgba(10, 20, 28, 0.78);
+  padding: 10px;
+}
+
+.arch-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.d-shell {
+  fill: rgba(11, 24, 33, 0.9);
+  stroke: #35556a;
+  stroke-width: 1.5;
+}
+
+.d-box {
+  stroke-width: 1.6;
+}
+
+.d-boot {
+  fill: rgba(0, 168, 132, 0.16);
+  stroke: #2fd8b3;
+}
+
+.d-core {
+  fill: rgba(255, 159, 67, 0.14);
+  stroke: #ffb562;
+}
+
+.d-display {
+  fill: rgba(79, 172, 254, 0.14);
+  stroke: #84c8ff;
+}
+
+.d-int {
+  fill: rgba(254, 202, 87, 0.14);
+  stroke: #ffd87c;
+}
+
+.d-io {
+  fill: rgba(255, 107, 129, 0.14);
+  stroke: #ff9ab0;
+}
+
+.d-user {
+  fill: rgba(139, 233, 253, 0.12);
+  stroke: #9ee7ff;
+}
+
+.d-title {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 23px;
+  font-weight: 700;
+  fill: #eaf7ff;
+}
+
+.d-text {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 16px;
+  fill: #b4d2e1;
+}
+
+.d-arrow {
+  stroke: #9ee7ff;
+  stroke-width: 2.1;
+}
+
+.d-arrow-warm {
+  stroke: #ffd8a0;
+  stroke-width: 2.1;
+}
+
 footer {
   position: relative;
   z-index: 1;
@@ -423,6 +500,19 @@ footer {
     grid-template-columns: 1fr;
   }
 
+  .d-title {
+    font-size: 20px;
+  }
+
+  .d-text {
+    font-size: 14px;
+  }
+
+  .d-arrow,
+  .d-arrow-warm {
+    stroke-width: 1.8;
+  }
+
   .topbar {
     flex-wrap: wrap;
     gap: 10px;
@@ -445,5 +535,17 @@ footer {
 
   .panel {
     padding: 16px;
+  }
+
+  .d-title {
+    font-size: 17px;
+  }
+
+  .d-text {
+    font-size: 12px;
+  }
+
+  .diagram-wrap {
+    padding: 6px;
   }
 }
