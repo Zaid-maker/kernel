@@ -9,6 +9,6 @@ isr_keyboard:
     cld
     call interrupts_handle_keyboard_irq
     popa
-    iretd
+    iret
 
 .size isr_keyboard, . - isr_keyboard
