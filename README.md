@@ -1,4 +1,4 @@
-# Minimal x86 Kernel
+# Project SigmaBoot
 
 [![Release](https://img.shields.io/github/v/release/Zaid-maker/kernel?label=release)](https://github.com/Zaid-maker/kernel/releases/latest)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](https://github.com/Zaid-maker/kernel)
@@ -6,7 +6,7 @@
 [![Release Pipeline](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/release-kernel.yml?label=release%20pipeline)](https://github.com/Zaid-maker/kernel/actions/workflows/release-kernel.yml)
 [![Deploy Website](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/deploy-site.yml?branch=main&label=pages)](https://github.com/Zaid-maker/kernel/actions/workflows/deploy-site.yml)
 
-A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text terminal layer.
+SigmaBoot is a tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text terminal layer.
 
 > [!WARNING]
 > This project is **experimental alpha software**.

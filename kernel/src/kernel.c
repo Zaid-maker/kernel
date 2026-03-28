@@ -226,7 +226,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     draw_lock_status_bar();
 
     terminal_set_color(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_GREEN);
-    kprintln("  MINIMAL KERNEL  ");
+    kprintln(" PROJECT SIGMABOOT ");
 
     terminal_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
     kprint("Kernel version: ");
