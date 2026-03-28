@@ -21,23 +21,23 @@ Expect breaking changes, incomplete features, and possible instability.
 
 ## Project Website
 
-- Source files are in `../site/`.
-- Open `../site/index.html` locally to preview.
-- Documentation page is `../site/docs.html`.
-- GitHub Pages deployment is automated by `../.github/workflows/deploy-site.yml`.
+- Source files are in `site/`.
+- Open `site/index.html` locally to preview.
+- Documentation page is `site/docs.html`.
+- GitHub Pages deployment is automated by `.github/workflows/deploy-site.yml`.
 
 ## Project Layout
 
-- `src/boot.s`: Multiboot header and assembly entrypoint.
-- `src/kernel.c`: C kernel entry logic and boot demo output.
-- `src/terminal.c`, `src/terminal.h`: VGA terminal driver.
-- `src/print.c`, `src/print.h`: tiny printing helpers.
-- `src/keyboard.c`, `src/keyboard.h`: PS/2 keyboard IRQ handling, queueing, and scancode mapping.
-- `src/interrupts.c`, `src/interrupts.h`: IDT setup, PIC remap, and IRQ dispatch.
-- `src/isr.s`: interrupt service routine stubs.
-- `linker.ld`: Links the kernel at 1 MiB.
-- `grub/grub.cfg`: GRUB menu entry.
-- `Makefile`: Build, ISO, and QEMU run targets.
+- `kernel/src/boot.s`: Multiboot header and assembly entrypoint.
+- `kernel/src/kernel.c`: C kernel entry logic and boot demo output.
+- `kernel/src/terminal.c`, `kernel/src/terminal.h`: VGA terminal driver.
+- `kernel/src/print.c`, `kernel/src/print.h`: tiny printing helpers.
+- `kernel/src/keyboard.c`, `kernel/src/keyboard.h`: PS/2 keyboard IRQ handling, queueing, and scancode mapping.
+- `kernel/src/interrupts.c`, `kernel/src/interrupts.h`: IDT setup, PIC remap, and IRQ dispatch.
+- `kernel/src/isr.s`: interrupt service routine stubs.
+- `kernel/linker.ld`: Links the kernel at 1 MiB.
+- `kernel/grub/grub.cfg`: GRUB menu entry.
+- `kernel/Makefile`: Build, ISO, and QEMU run targets.
 
 ## Prerequisites
 
@@ -51,23 +51,23 @@ Install the following tools:
 ## Build
 
 ```bash
-make all
+make -C kernel all
 ```
 
 ## Build Bootable ISO
 
 ```bash
-make iso
+make -C kernel iso
 ```
 
 ## Run in QEMU
 
 ```bash
-make run
+make -C kernel run
 ```
 
 ## Clean
 
 ```bash
-make clean
+make -C kernel clean
 ```
