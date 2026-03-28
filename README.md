@@ -36,7 +36,7 @@ A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260328.1`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260328.5`
 
 ## Project Website
 
