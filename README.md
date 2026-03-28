@@ -26,7 +26,8 @@ A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
 - PIT timer IRQ0 support with uptime display in the status bar.
-- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`.
+- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`.
+- Multiboot memory map viewer command (`memmap`) for physical layout inspection.
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning
@@ -53,6 +54,7 @@ A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text
 - `kernel/src/keyboard.c`, `kernel/src/keyboard.h`: PS/2 keyboard IRQ handling, queueing, and scancode mapping.
 - `kernel/src/interrupts.c`, `kernel/src/interrupts.h`: IDT setup, PIC remap, and IRQ dispatch.
 - `kernel/src/timer.c`, `kernel/src/timer.h`: PIT configuration and uptime counters.
+- `kernel/src/multiboot.h`: Multiboot data structures used for boot-time memory map parsing.
 - `kernel/src/isr.s`: interrupt service routine stubs.
 - `kernel/linker.ld`: Links the kernel at 1 MiB.
 - `kernel/grub/grub.cfg`: GRUB menu entry.

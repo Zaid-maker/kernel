@@ -47,7 +47,7 @@
         </article>
         <article class="doc-card">
           <h3>Kernel Core</h3>
-          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, and tiny shell command dispatch.</p>
+          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, tiny shell command dispatch, and memmap rendering.</p>
         </article>
         <article class="doc-card">
           <h3>Display</h3>
@@ -71,6 +71,7 @@
         <li>Assembly startup sets stack and calls <span class="mono">kernel_main</span>.</li>
         <li>Kernel initializes terminal, sets IDT, remaps PIC, and enables interrupts.</li>
         <li>Timer IRQ0 increments uptime counters and updates periodic UI state.</li>
+        <li>Multiboot metadata is retained for shell-level memory map inspection (`memmap`).</li>
         <li>CPU exceptions (vectors 0-31) dispatch to a fault screen with diagnostic register output.</li>
         <li>Keyboard IRQ1 enters <span class="mono">isr_keyboard</span>, dispatches to C handler, sends EOI.</li>
         <li>Translated characters are queued and consumed by the prompt loop.</li>
@@ -139,6 +140,10 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
           <tr>
             <td class="mono">kernel/src/timer.c</td>
             <td>PIT setup and uptime tick counters</td>
+          </tr>
+          <tr>
+            <td class="mono">kernel/src/multiboot.h</td>
+            <td>Multiboot structs and flags for memory map parsing</td>
           </tr>
           <tr>
             <td class="mono">kernel/Makefile</td>

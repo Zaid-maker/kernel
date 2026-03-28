@@ -24,7 +24,10 @@ stack_top:
 _start:
     cli
     mov $stack_top, %esp
+    push %ebx
+    push %eax
     call kernel_main
+    add $8, %esp
 .hang:
     hlt
     jmp .hang

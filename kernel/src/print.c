@@ -37,3 +37,12 @@ void kprint_hex(uint32_t value) {
         terminal_write_char(hex[(value >> (uint32_t)shift) & 0xF]);
     }
 }
+
+void kprint_hex64(uint64_t value) {
+    static const char hex[] = "0123456789ABCDEF";
+
+    terminal_write("0x");
+    for (int shift = 60; shift >= 0; shift -= 4) {
+        terminal_write_char(hex[(value >> (uint32_t)shift) & 0xFu]);
+    }
+}

@@ -7,5 +7,6 @@ void kprint(const char* data);
 void kprintln(const char* data);
 void kprint_dec(uint32_t value);
 void kprint_hex(uint32_t value);
+void kprint_hex64(uint64_t value);
 
 #endif

@@ -2,6 +2,7 @@
 
 #include "interrupts.h"
 #include "keyboard.h"
+#include "multiboot.h"
 #include "print.h"
 #include "timer.h"
 #include "terminal.h"
@@ -13,6 +14,9 @@
 enum {
     SHELL_INPUT_MAX = 128
 };
+
+static uint32_t g_multiboot_magic = 0;
+static const struct multiboot_info* g_multiboot_info = (const struct multiboot_info*)0;
 
 static int str_equal(const char* a, const char* b) {
     size_t i = 0;
@@ -53,6 +57,67 @@ static void shell_print_help(void) {
     kprintln(" - version");
     kprintln(" - locks");
     kprintln(" - uptime");
+    kprintln(" - memmap");
+}
+
+static const char* mem_type_name(uint32_t type) {
+    switch (type) {
+        case 1u: return "available";
+        case 2u: return "reserved";
+        case 3u: return "acpi-reclaim";
+        case 4u: return "acpi-nvs";
+        case 5u: return "bad-ram";
+        default: return "unknown";
+    }
+}
+
+static void shell_print_memmap(void) {
+    if (g_multiboot_magic != MULTIBOOT_BOOTLOADER_MAGIC || g_multiboot_info == 0) {
+        kprintln("Multiboot info unavailable.");
+        return;
+    }
+
+    const struct multiboot_info* mbi = g_multiboot_info;
+    if ((mbi->flags & MULTIBOOT_INFO_MEM_MAP) == 0u) {
+        kprintln("No memory map provided by bootloader.");
+        return;
+    }
+
+    uint32_t cursor = mbi->mmap_addr;
+    const uint32_t end = mbi->mmap_addr + mbi->mmap_length;
+    uint32_t index = 0;
+    uint32_t available_count = 0;
+    uint64_t available_bytes = 0;
+
+    kprintln("Memory map entries:");
+    while (cursor < end) {
+        const struct multiboot_mmap_entry* entry = (const struct multiboot_mmap_entry*)(uintptr_t)cursor;
+
+        kprint(" #");
+        kprint_dec(index);
+        kprint(" ");
+        kprint(mem_type_name(entry->type));
+        kprint(" base=");
+        kprint_hex64(entry->addr);
+        kprint(" len=");
+        kprint_hex64(entry->len);
+        terminal_write_char('\n');
+
+        if (entry->type == 1u) {
+            ++available_count;
+            available_bytes += entry->len;
+        }
+
+        cursor += entry->size + sizeof(entry->size);
+        ++index;
+    }
+
+    kprint("Available regions: ");
+    kprint_dec(available_count);
+    terminal_write_char('\n');
+    kprint("Available total bytes: ");
+    kprint_hex64(available_bytes);
+    terminal_write_char('\n');
 }
 
 static void shell_run_command(const char* cmd) {
@@ -83,6 +148,11 @@ static void shell_run_command(const char* cmd) {
 
     if (str_equal(cmd, "uptime")) {
         print_uptime_line();
+        return;
+    }
+
+    if (str_equal(cmd, "memmap")) {
+        shell_print_memmap();
         return;
     }
 
@@ -145,7 +215,10 @@ static void draw_lock_status_bar(void) {
     terminal_write_at(uptime, 24, 65, VGA_COLOR_WHITE, VGA_COLOR_BLUE);
 }
 
-void kernel_main(void) {
+void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
+    g_multiboot_magic = multiboot_magic;
+    g_multiboot_info = (const struct multiboot_info*)(uintptr_t)multiboot_info_addr;
+
     terminal_initialize();
     interrupts_initialize();
     timer_initialize(100u);
@@ -172,7 +245,7 @@ void kernel_main(void) {
     terminal_write_char('\n');
 
     kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
-    kprintln("Type below (help, clear, version, locks, uptime):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap):");
     kprint("> ");
 
     char input[SHELL_INPUT_MAX];
