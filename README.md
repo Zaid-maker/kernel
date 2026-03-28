@@ -1,11 +1,17 @@
 # Minimal x86 Kernel
 
+[![Release](https://img.shields.io/github/v/release/Zaid-maker/kernel?label=release)](https://github.com/Zaid-maker/kernel/releases/latest)
+[![Status: Alpha](https://img.shields.io/badge/status-alpha-orange)](https://github.com/Zaid-maker/kernel)
+[![Build Kernel](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/build-kernel.yml?branch=main&label=build)](https://github.com/Zaid-maker/kernel/actions/workflows/build-kernel.yml)
+[![Release Pipeline](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/release-kernel.yml?label=release%20pipeline)](https://github.com/Zaid-maker/kernel/actions/workflows/release-kernel.yml)
+[![Deploy Website](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/deploy-site.yml?branch=main&label=pages)](https://github.com/Zaid-maker/kernel/actions/workflows/deploy-site.yml)
+
 A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text terminal layer.
 
-## Warning
-
-This project is experimental alpha software.
-Expect breaking changes, incomplete features, and possible instability.
+> [!WARNING]
+> This project is **experimental alpha software**.
+> Breaking changes can happen between releases, features may be incomplete or unstable,
+> and it is not intended for production or critical systems.
 
 ## Features
 
