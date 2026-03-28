@@ -49,10 +49,11 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
 - PIT timer IRQ0 support with uptime display in the status bar.
-- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`.
+- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `history`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
 - Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
 - Heap allocator groundwork with `kmalloc`/`kfree` and `heap` shell stats command.
+- Heap-backed dynamic shell input buffer with growth and last-command history (`history`).
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning

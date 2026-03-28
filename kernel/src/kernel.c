@@ -14,11 +14,13 @@
 #endif
 
 enum {
-    SHELL_INPUT_MAX = 128
+    SHELL_INPUT_INITIAL = 128,
+    SHELL_INPUT_MAX = 1024
 };
 
 static uint32_t g_multiboot_magic = 0;
 static const struct multiboot_info* g_multiboot_info = (const struct multiboot_info*)0;
+static char* g_last_command = (char*)0;
 
 static int str_equal(const char* a, const char* b) {
     size_t i = 0;
@@ -62,6 +64,45 @@ static void shell_print_help(void) {
     kprintln(" - memmap");
     kprintln(" - pmm");
     kprintln(" - heap");
+    kprintln(" - history");
+}
+
+static uint32_t cstr_len(const char* s) {
+    uint32_t n = 0;
+    while (s[n] != '\0') {
+        ++n;
+    }
+    return n;
+}
+
+static int shell_store_last_command(const char* cmd) {
+    uint32_t len = cstr_len(cmd);
+
+    char* next = (char*)kmalloc(len + 1u);
+    if (next == 0) {
+        return 0;
+    }
+
+    for (uint32_t i = 0; i < len; ++i) {
+        next[i] = cmd[i];
+    }
+    next[len] = '\0';
+
+    if (g_last_command != 0) {
+        kfree(g_last_command);
+    }
+    g_last_command = next;
+    return 1;
+}
+
+static void shell_print_history(void) {
+    if (g_last_command == 0 || g_last_command[0] == '\0') {
+        kprintln("No command history yet.");
+        return;
+    }
+
+    kprint("Last command: ");
+    kprintln(g_last_command);
 }
 
 static void shell_print_heap(void) {
@@ -219,6 +260,11 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "history")) {
+        shell_print_history();
+        return;
+    }
+
     kprint("Unknown command: ");
     kprintln(cmd);
 }
@@ -313,7 +359,15 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap):");
     kprint("> ");
 
-    char input[SHELL_INPUT_MAX];
+    char* input = (char*)kmalloc(SHELL_INPUT_INITIAL);
+    if (input == 0) {
+        kprintln("FATAL: heap unavailable for shell input buffer.");
+        for (;;) {
+            __asm__ volatile("hlt");
+        }
+    }
+
+    uint32_t input_cap = SHELL_INPUT_INITIAL;
     uint32_t input_len = 0;
 
     uint8_t prev_caps = keyboard_is_caps_lock_on();
@@ -352,6 +406,9 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
         if (key == '\n') {
             terminal_write_char('\n');
             input[input_len] = '\0';
+            if (input[0] != '\0' && !shell_store_last_command(input)) {
+                kprintln("Warning: failed to store command history.");
+            }
             shell_run_command(input);
             input_len = 0;
 
@@ -377,8 +434,29 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
             continue;
         }
 
-        if (input_len + 1u >= SHELL_INPUT_MAX) {
-            continue;
+        if (input_len + 1u >= input_cap) {
+            if (input_cap >= SHELL_INPUT_MAX) {
+                continue;
+            }
+
+            uint32_t next_cap = input_cap * 2u;
+            if (next_cap > SHELL_INPUT_MAX) {
+                next_cap = SHELL_INPUT_MAX;
+            }
+
+            char* grown = (char*)kmalloc(next_cap);
+            if (grown == 0) {
+                kprintln("Warning: shell buffer growth failed.");
+                continue;
+            }
+
+            for (uint32_t i = 0; i < input_len; ++i) {
+                grown[i] = input[i];
+            }
+
+            kfree(input);
+            input = grown;
+            input_cap = next_cap;
         }
 
         input[input_len++] = key;
