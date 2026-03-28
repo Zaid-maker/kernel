@@ -112,15 +112,23 @@ qemu-system-i386 -cdrom build/kernel.iso</code></pre>
       <div class="timeline">
         <div class="point">
           <span></span>
-          <p><strong>Done:</strong> keyboard lock LEDs + lock status bar UI</p>
+          <p><strong>Done:</strong> VGA terminal, keyboard lock LEDs, lock status bar, and IRQ1 interrupt-driven input (IDT + PIC remap).</p>
         </div>
         <div class="point">
           <span></span>
-          <p><strong>Next:</strong> exception ISRs and fault screen diagnostics</p>
+          <p><strong>Done:</strong> CI build artifacts, release asset pipeline, and project website/docs with GitHub Pages deployment.</p>
         </div>
         <div class="point">
           <span></span>
-          <p><strong>Later:</strong> memory map display and simple command parser</p>
+          <p><strong>Next:</strong> exception ISRs with a fault diagnostics screen (register snapshot and halt reason).</p>
+        </div>
+        <div class="point">
+          <span></span>
+          <p><strong>Later:</strong> PIT timer + uptime display, then a tiny command shell (`help`, `clear`, `version`, `locks`).</p>
+        </div>
+        <div class="point">
+          <span></span>
+          <p><strong>Future:</strong> Multiboot memory map viewer and early physical memory management groundwork.</p>
         </div>
       </div>
     </section>
