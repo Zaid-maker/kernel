@@ -83,6 +83,11 @@ static char to_lower(char c) {
     return (char)(c + ('a' - 'A'));
 }
 
+static uint8_t shift_pressed = 0;
+static uint8_t caps_lock = 0;
+static uint8_t num_lock = 0;
+static uint8_t scroll_lock = 0;
+
 static const char scancode_map[128] = {
     0,
     27,
@@ -124,11 +129,6 @@ static const char scancode_map_shift[128] = {
 };
 
 char keyboard_read_char(void) {
-    static uint8_t shift_pressed = 0;
-    static uint8_t caps_lock = 0;
-    static uint8_t num_lock = 0;
-    static uint8_t scroll_lock = 0;
-
     if ((port_inb(0x64) & 1u) == 0) {
         return 0;
     }
@@ -220,4 +220,16 @@ char keyboard_read_char(void) {
     }
 
     return out;
+}
+
+uint8_t keyboard_is_caps_lock_on(void) {
+    return caps_lock;
+}
+
+uint8_t keyboard_is_num_lock_on(void) {
+    return num_lock;
+}
+
+uint8_t keyboard_is_scroll_lock_on(void) {
+    return scroll_lock;
 }

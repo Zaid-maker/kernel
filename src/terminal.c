@@ -2,6 +2,7 @@
 
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
+static const size_t VGA_TEXT_HEIGHT = 24;
 
 static size_t terminal_row;
 static size_t terminal_column;
@@ -24,7 +25,7 @@ static void terminal_clear_row(size_t row) {
 }
 
 static void terminal_scroll(void) {
-    for (size_t row = 1; row < VGA_HEIGHT; ++row) {
+    for (size_t row = 1; row < VGA_TEXT_HEIGHT; ++row) {
         for (size_t col = 0; col < VGA_WIDTH; ++col) {
             const size_t from = row * VGA_WIDTH + col;
             const size_t to = (row - 1) * VGA_WIDTH + col;
@@ -32,7 +33,7 @@ static void terminal_scroll(void) {
         }
     }
 
-    terminal_clear_row(VGA_HEIGHT - 1);
+    terminal_clear_row(VGA_TEXT_HEIGHT - 1);
 }
 
 void terminal_initialize(void) {
@@ -85,9 +86,9 @@ void terminal_write_char(char c) {
         ++terminal_row;
     }
 
-    if (terminal_row >= VGA_HEIGHT) {
+    if (terminal_row >= VGA_TEXT_HEIGHT) {
         terminal_scroll();
-        terminal_row = VGA_HEIGHT - 1;
+        terminal_row = VGA_TEXT_HEIGHT - 1;
     }
 }
 
@@ -102,4 +103,30 @@ void terminal_write(const char* data) {
 void terminal_writeln(const char* data) {
     terminal_write(data);
     terminal_write_char('\n');
+}
+
+void terminal_write_at(const char* data, size_t row, size_t col, uint8_t fg, uint8_t bg) {
+    if (row >= VGA_HEIGHT || col >= VGA_WIDTH) {
+        return;
+    }
+
+    const uint8_t color = vga_make_color(fg, bg);
+    size_t i = 0;
+    while (data[i] != '\0' && (col + i) < VGA_WIDTH) {
+        const size_t index = row * VGA_WIDTH + (col + i);
+        terminal_buffer[index] = vga_make_entry((unsigned char)data[i], color);
+        ++i;
+    }
+}
+
+void terminal_fill_row(size_t row, char c, uint8_t fg, uint8_t bg) {
+    if (row >= VGA_HEIGHT) {
+        return;
+    }
+
+    const uint8_t color = vga_make_color(fg, bg);
+    for (size_t col = 0; col < VGA_WIDTH; ++col) {
+        const size_t index = row * VGA_WIDTH + col;
+        terminal_buffer[index] = vga_make_entry((unsigned char)c, color);
+    }
 }
