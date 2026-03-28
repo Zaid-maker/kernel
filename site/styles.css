@@ -110,11 +110,35 @@ h1 {
   line-height: 1.06;
 }
 
+.alpha-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.38em;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #ffb35a, #ff7d42);
+  color: #2c1200;
+  border: 1px solid rgba(255, 214, 170, 0.65);
+}
+
 .subtitle {
   max-width: 740px;
   color: var(--ink-dim);
   font-size: 1.08rem;
   line-height: 1.55;
+}
+
+.warning-note {
+  margin: 14px 0 0;
+  display: inline-block;
+  border: 1px solid #8a5927;
+  background: rgba(138, 89, 39, 0.2);
+  color: #ffd8a8;
+  padding: 8px 12px;
+  border-radius: 10px;
 }
 
 .cta-row {

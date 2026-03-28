@@ -2,6 +2,11 @@
 
 A tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text terminal layer.
 
+## Warning
+
+This project is experimental alpha software.
+Expect breaking changes, incomplete features, and possible instability.
+
 ## Features
 
 - Multiboot-compliant boot path with GRUB.
