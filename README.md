@@ -19,6 +19,7 @@ Expect breaking changes, incomplete features, and possible instability.
 - Persistent bottom-row lock status bar showing CAPS/NUM/SCRL states.
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
+- PIT timer IRQ0 support with uptime display in the status bar.
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning
@@ -44,6 +45,7 @@ Expect breaking changes, incomplete features, and possible instability.
 - `kernel/src/print.c`, `kernel/src/print.h`: tiny printing helpers.
 - `kernel/src/keyboard.c`, `kernel/src/keyboard.h`: PS/2 keyboard IRQ handling, queueing, and scancode mapping.
 - `kernel/src/interrupts.c`, `kernel/src/interrupts.h`: IDT setup, PIC remap, and IRQ dispatch.
+- `kernel/src/timer.c`, `kernel/src/timer.h`: PIT configuration and uptime counters.
 - `kernel/src/isr.s`: interrupt service routine stubs.
 - `kernel/linker.ld`: Links the kernel at 1 MiB.
 - `kernel/grub/grub.cfg`: GRUB menu entry.

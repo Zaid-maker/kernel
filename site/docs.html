@@ -57,6 +57,10 @@
           <h3>Input + IRQ</h3>
           <p><span class="mono">src/interrupts.c</span> remaps PIC and loads IDT. <span class="mono">src/keyboard.c</span> handles IRQ scancodes and key queue.</p>
         </article>
+        <article class="doc-card">
+          <h3>Timing</h3>
+          <p><span class="mono">src/timer.c</span> programs PIT channel 0 and tracks uptime ticks consumed by the status bar.</p>
+        </article>
       </div>
     </section>
 
@@ -66,6 +70,7 @@
         <li>GRUB loads kernel using Multiboot and transfers control to <span class="mono">_start</span>.</li>
         <li>Assembly startup sets stack and calls <span class="mono">kernel_main</span>.</li>
         <li>Kernel initializes terminal, sets IDT, remaps PIC, and enables interrupts.</li>
+        <li>Timer IRQ0 increments uptime counters and updates periodic UI state.</li>
         <li>CPU exceptions (vectors 0-31) dispatch to a fault screen with diagnostic register output.</li>
         <li>Keyboard IRQ1 enters <span class="mono">isr_keyboard</span>, dispatches to C handler, sends EOI.</li>
         <li>Translated characters are queued and consumed by the prompt loop.</li>
@@ -130,6 +135,10 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
           <tr>
             <td class="mono">kernel/src/terminal.c</td>
             <td>VGA text rendering and status row support</td>
+          </tr>
+          <tr>
+            <td class="mono">kernel/src/timer.c</td>
+            <td>PIT setup and uptime tick counters</td>
           </tr>
           <tr>
             <td class="mono">kernel/Makefile</td>

@@ -4,6 +4,7 @@
 
 #include "keyboard.h"
 #include "print.h"
+#include "timer.h"
 #include "terminal.h"
 
 struct idt_entry {
@@ -53,6 +54,7 @@ extern void isr_exception_28(void);
 extern void isr_exception_29(void);
 extern void isr_exception_30(void);
 extern void isr_exception_31(void);
+extern void isr_timer(void);
 extern void isr_keyboard(void);
 
 static const uint32_t exception_handlers[32] = {
@@ -224,16 +226,22 @@ void interrupts_initialize(void) {
         idt_set_gate((uint8_t)i, exception_handlers[i], 0x08u, 0x8Eu);
     }
 
+    idt_set_gate(0x20u, (uint32_t)isr_timer, 0x08u, 0x8Eu);
     idt_set_gate(0x21u, (uint32_t)isr_keyboard, 0x08u, 0x8Eu);
 
     pic_remap(0x20u, 0x28u);
-    pic_set_irq_mask(0xFDu, 0xFFu);
+    pic_set_irq_mask(0xFCu, 0xFFu);
 
     idt_load();
 }
 
 void interrupts_enable(void) {
     __asm__ volatile("sti");
+}
+
+void interrupts_handle_timer_irq(void) {
+    timer_handle_irq();
+    pic_send_eoi(0);
 }
 
 void interrupts_handle_keyboard_irq(void) {

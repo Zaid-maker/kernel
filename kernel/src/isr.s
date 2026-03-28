@@ -1,6 +1,7 @@
 .section .text
 
 .extern interrupts_handle_exception
+.extern interrupts_handle_timer_irq
 .extern interrupts_handle_keyboard_irq
 
 .macro ISR_NOERR num
@@ -81,6 +82,17 @@ ISR_NOERR 28
 ISR_ERR   29
 ISR_ERR   30
 ISR_NOERR 31
+
+.global isr_timer
+.type isr_timer, @function
+isr_timer:
+    pusha
+    cld
+    call interrupts_handle_timer_irq
+    popa
+    iret
+
+.size isr_timer, . - isr_timer
 
 .global isr_keyboard
 .type isr_keyboard, @function
