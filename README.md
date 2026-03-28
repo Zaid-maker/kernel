@@ -18,6 +18,7 @@ Expect breaking changes, incomplete features, and possible instability.
 - Lock key LED synchronization for Caps Lock, Num Lock, and Scroll Lock.
 - Persistent bottom-row lock status bar showing CAPS/NUM/SCRL states.
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
+- CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning

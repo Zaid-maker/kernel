@@ -3,6 +3,8 @@
 #include <stdint.h>
 
 #include "keyboard.h"
+#include "print.h"
+#include "terminal.h"
 
 struct idt_entry {
     uint16_t offset_low;
@@ -19,7 +21,109 @@ struct idt_ptr {
 
 static struct idt_entry idt[256];
 
+extern void isr_exception_0(void);
+extern void isr_exception_1(void);
+extern void isr_exception_2(void);
+extern void isr_exception_3(void);
+extern void isr_exception_4(void);
+extern void isr_exception_5(void);
+extern void isr_exception_6(void);
+extern void isr_exception_7(void);
+extern void isr_exception_8(void);
+extern void isr_exception_9(void);
+extern void isr_exception_10(void);
+extern void isr_exception_11(void);
+extern void isr_exception_12(void);
+extern void isr_exception_13(void);
+extern void isr_exception_14(void);
+extern void isr_exception_15(void);
+extern void isr_exception_16(void);
+extern void isr_exception_17(void);
+extern void isr_exception_18(void);
+extern void isr_exception_19(void);
+extern void isr_exception_20(void);
+extern void isr_exception_21(void);
+extern void isr_exception_22(void);
+extern void isr_exception_23(void);
+extern void isr_exception_24(void);
+extern void isr_exception_25(void);
+extern void isr_exception_26(void);
+extern void isr_exception_27(void);
+extern void isr_exception_28(void);
+extern void isr_exception_29(void);
+extern void isr_exception_30(void);
+extern void isr_exception_31(void);
 extern void isr_keyboard(void);
+
+static const uint32_t exception_handlers[32] = {
+    (uint32_t)isr_exception_0,
+    (uint32_t)isr_exception_1,
+    (uint32_t)isr_exception_2,
+    (uint32_t)isr_exception_3,
+    (uint32_t)isr_exception_4,
+    (uint32_t)isr_exception_5,
+    (uint32_t)isr_exception_6,
+    (uint32_t)isr_exception_7,
+    (uint32_t)isr_exception_8,
+    (uint32_t)isr_exception_9,
+    (uint32_t)isr_exception_10,
+    (uint32_t)isr_exception_11,
+    (uint32_t)isr_exception_12,
+    (uint32_t)isr_exception_13,
+    (uint32_t)isr_exception_14,
+    (uint32_t)isr_exception_15,
+    (uint32_t)isr_exception_16,
+    (uint32_t)isr_exception_17,
+    (uint32_t)isr_exception_18,
+    (uint32_t)isr_exception_19,
+    (uint32_t)isr_exception_20,
+    (uint32_t)isr_exception_21,
+    (uint32_t)isr_exception_22,
+    (uint32_t)isr_exception_23,
+    (uint32_t)isr_exception_24,
+    (uint32_t)isr_exception_25,
+    (uint32_t)isr_exception_26,
+    (uint32_t)isr_exception_27,
+    (uint32_t)isr_exception_28,
+    (uint32_t)isr_exception_29,
+    (uint32_t)isr_exception_30,
+    (uint32_t)isr_exception_31,
+};
+
+static const char* const exception_names[32] = {
+    "Divide-by-zero Error",
+    "Debug",
+    "Non-maskable Interrupt",
+    "Breakpoint",
+    "Overflow",
+    "Bound Range Exceeded",
+    "Invalid Opcode",
+    "Device Not Available",
+    "Double Fault",
+    "Coprocessor Segment Overrun",
+    "Invalid TSS",
+    "Segment Not Present",
+    "Stack-Segment Fault",
+    "General Protection Fault",
+    "Page Fault",
+    "Reserved",
+    "x87 Floating-Point Exception",
+    "Alignment Check",
+    "Machine Check",
+    "SIMD Floating-Point Exception",
+    "Virtualization Exception",
+    "Control Protection Exception",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Reserved",
+    "Hypervisor Injection Exception",
+    "VMM Communication Exception",
+    "Security Exception",
+    "Reserved",
+};
 
 static inline uint8_t port_inb(uint16_t port) {
     uint8_t value;
@@ -93,9 +197,31 @@ static void pic_send_eoi(uint8_t irq) {
     port_outb(0x20, 0x20);
 }
 
+static int exception_has_error_code(uint32_t vector) {
+    switch (vector) {
+        case 8u:
+        case 10u:
+        case 11u:
+        case 12u:
+        case 13u:
+        case 14u:
+        case 17u:
+        case 21u:
+        case 29u:
+        case 30u:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 void interrupts_initialize(void) {
     for (uint32_t i = 0; i < 256u; ++i) {
         idt_set_gate((uint8_t)i, 0, 0, 0);
+    }
+
+    for (uint32_t i = 0; i < 32u; ++i) {
+        idt_set_gate((uint8_t)i, exception_handlers[i], 0x08u, 0x8Eu);
     }
 
     idt_set_gate(0x21u, (uint32_t)isr_keyboard, 0x08u, 0x8Eu);
@@ -113,4 +239,52 @@ void interrupts_enable(void) {
 void interrupts_handle_keyboard_irq(void) {
     keyboard_handle_irq();
     pic_send_eoi(1);
+}
+
+void interrupts_handle_exception(uint32_t vector, uint32_t error_code, uint32_t eip, uint32_t cs, uint32_t eflags) {
+    __asm__ volatile("cli");
+
+    terminal_initialize();
+    terminal_fill_row(0, ' ', VGA_COLOR_WHITE, VGA_COLOR_RED);
+    terminal_write_at(" KERNEL EXCEPTION ", 0, 1, VGA_COLOR_WHITE, VGA_COLOR_RED);
+
+    terminal_set_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
+    kprintln("A CPU exception occurred. System halted.");
+    terminal_write_char('\n');
+
+    kprint("Vector: ");
+    kprint_dec(vector);
+    kprint(" - ");
+    if (vector < 32u) {
+        kprintln(exception_names[vector]);
+    } else {
+        kprintln("Unknown Exception");
+    }
+
+    kprint("Error code: ");
+    if (exception_has_error_code(vector)) {
+        kprint_hex(error_code);
+    } else {
+        kprint("N/A");
+    }
+    terminal_write_char('\n');
+
+    kprint("EIP: ");
+    kprint_hex(eip);
+    terminal_write_char('\n');
+
+    kprint("CS: ");
+    kprint_hex(cs);
+    terminal_write_char('\n');
+
+    kprint("EFLAGS: ");
+    kprint_hex(eflags);
+    terminal_write_char('\n');
+
+    terminal_write_char('\n');
+    kprintln("Reset or power cycle to recover.");
+
+    for (;;) {
+        __asm__ volatile("hlt");
+    }
 }

@@ -66,6 +66,7 @@
         <li>GRUB loads kernel using Multiboot and transfers control to <span class="mono">_start</span>.</li>
         <li>Assembly startup sets stack and calls <span class="mono">kernel_main</span>.</li>
         <li>Kernel initializes terminal, sets IDT, remaps PIC, and enables interrupts.</li>
+        <li>CPU exceptions (vectors 0-31) dispatch to a fault screen with diagnostic register output.</li>
         <li>Keyboard IRQ1 enters <span class="mono">isr_keyboard</span>, dispatches to C handler, sends EOI.</li>
         <li>Translated characters are queued and consumed by the prompt loop.</li>
       </ol>
@@ -85,9 +86,9 @@
       <div class="split">
         <div class="code-box">
           <h3>Local Build</h3>
-          <pre><code>make all CROSS_COMPILE=
-make iso CROSS_COMPILE=
-qemu-system-i386 -cdrom build/kernel.iso</code></pre>
+          <pre><code>make -C kernel all CROSS_COMPILE=
+make -C kernel iso CROSS_COMPILE=
+qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
         </div>
         <div class="code-box">
           <h3>GitHub Actions</h3>
@@ -111,27 +112,27 @@ qemu-system-i386 -cdrom build/kernel.iso</code></pre>
         </thead>
         <tbody>
           <tr>
-            <td class="mono">src/boot.s</td>
+            <td class="mono">kernel/src/boot.s</td>
             <td>Multiboot header and stack setup</td>
           </tr>
           <tr>
-            <td class="mono">src/isr.s</td>
+            <td class="mono">kernel/src/isr.s</td>
             <td>Assembly ISR entry stubs</td>
           </tr>
           <tr>
-            <td class="mono">src/interrupts.c</td>
+            <td class="mono">kernel/src/interrupts.c</td>
             <td>IDT init, PIC remap, IRQ dispatch</td>
           </tr>
           <tr>
-            <td class="mono">src/keyboard.c</td>
+            <td class="mono">kernel/src/keyboard.c</td>
             <td>Scancode handling, lock states, input queue</td>
           </tr>
           <tr>
-            <td class="mono">src/terminal.c</td>
+            <td class="mono">kernel/src/terminal.c</td>
             <td>VGA text rendering and status row support</td>
           </tr>
           <tr>
-            <td class="mono">Makefile</td>
+            <td class="mono">kernel/Makefile</td>
             <td>Build and ISO generation rules</td>
           </tr>
         </tbody>
