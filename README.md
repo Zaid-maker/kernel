@@ -143,6 +143,14 @@ make -C kernel coverage
 
 This generates an LCOV report at `kernel/build/coverage/lcov.info` for the host-side formatter test suite.
 
+## Codecov Bundle Analysis (Ready)
+
+- Repo includes `codecov.yml` with Bundle Analysis defaults:
+  - PR comment only when bundle changes (`require_bundle_changes: true`)
+  - 1Kb minimum change threshold for bundle comments
+  - informational bundle status with 5% warning threshold
+- To activate Bundle Analysis output, add a supported bundler plugin (Vite/Webpack/Rollup) in the frontend build path and run that build in CI.
+
 ## Quick Regression Checklist
 
 - Boot reaches shell prompt and prints kernel version.

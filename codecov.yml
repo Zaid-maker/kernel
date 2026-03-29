@@ -1,0 +1,11 @@
+codecov:
+  notify:
+    wait_for_ci: true
+
+comment:
+  require_bundle_changes: true
+  bundle_change_threshold: "1Kb"
+
+bundle_analysis:
+  warning_threshold: "5%"
+  status: informational
