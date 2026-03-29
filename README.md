@@ -5,6 +5,9 @@
 [![Build Kernel](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/build-kernel.yml?branch=main&label=build)](https://github.com/Zaid-maker/kernel/actions/workflows/build-kernel.yml)
 [![Release Pipeline](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/release-kernel.yml?label=release%20pipeline)](https://github.com/Zaid-maker/kernel/actions/workflows/release-kernel.yml)
 [![Deploy Website](https://img.shields.io/github/actions/workflow/status/Zaid-maker/kernel/deploy-site.yml?branch=main&label=pages)](https://github.com/Zaid-maker/kernel/actions/workflows/deploy-site.yml)
+[![Tests: Enforced](https://img.shields.io/badge/tests-enforced-success)](https://github.com/Zaid-maker/kernel/actions/workflows/build-kernel.yml)
+[![Coverage](https://codecov.io/gh/Zaid-maker/kernel/branch/main/graph/badge.svg)](https://codecov.io/gh/Zaid-maker/kernel)
+[![Coverage Scope](https://img.shields.io/badge/coverage-host--side%20sbuf-informational)](kernel/tests)
 
 SigmaBoot is a tiny 32-bit freestanding kernel that boots with GRUB and provides a basic text terminal layer.
 
@@ -129,6 +132,15 @@ make -C kernel test
 ```
 
 This runs host-side unit tests for shared formatting helpers (`src/sbuf.c`) in parallel with kernel feature work.
+Both CI (`build-kernel.yml`) and release (`release-kernel.yml`) pipelines run this test gate before build/release assets.
+
+## Run Coverage
+
+```bash
+make -C kernel coverage
+```
+
+This generates an LCOV report at `kernel/build/coverage/lcov.info` for the host-side formatter test suite.
 
 ## Quick Regression Checklist
 
