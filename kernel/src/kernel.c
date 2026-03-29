@@ -18,13 +18,15 @@ enum {
     SHELL_INPUT_MAX = 1024,
     SHELL_HISTORY_SIZE = 16,
     STATUS_UPTIME_BUFFER_SIZE = 24,
-    MEMMAP_LINE_BUFFER_SIZE = 160
+    MEMMAP_LINE_BUFFER_SIZE = 160,
+    PMM_STATS_BUFFER_SIZE = 160
 };
 
 static uint32_t g_multiboot_magic = 0;
 static const struct multiboot_info* g_multiboot_info = (const struct multiboot_info*)0;
 static char* g_status_uptime_buffer = (char*)0;
 static char* g_memmap_line_buffer = (char*)0;
+static char* g_pmm_stats_buffer = (char*)0;
 static char* g_command_history[SHELL_HISTORY_SIZE];
 static uint32_t g_command_history_head = 0;
 static uint32_t g_command_history_count = 0;
@@ -217,32 +219,62 @@ static void shell_print_heap(void) {
     terminal_write_char('\n');
 }
 
+static void sbuf_append_hex_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
+    static const char hex[] = "0123456789ABCDEF";
+
+    sbuf_append_str(buffer, cap, len, "0x");
+    for (int shift = 28; shift >= 0; shift -= 4) {
+        const uint32_t nibble = (value >> (uint32_t)shift) & 0xFu;
+        sbuf_append_char(buffer, cap, len, hex[nibble]);
+    }
+}
+
 static void shell_print_pmm(void) {
     const struct pmm_stats stats = pmm_get_stats();
     const uint64_t total_bytes = (uint64_t)stats.total_frames * 4096u;
     const uint64_t used_bytes = (uint64_t)stats.used_frames * 4096u;
     const uint64_t free_bytes = (uint64_t)stats.free_frames * 4096u;
 
-    kprintln("PMM stats:");
-    kprint(" total frames: ");
-    kprint_dec(stats.total_frames);
-    terminal_write_char('\n');
-    kprint(" used frames : ");
-    kprint_dec(stats.used_frames);
-    terminal_write_char('\n');
-    kprint(" free frames : ");
-    kprint_dec(stats.free_frames);
-    terminal_write_char('\n');
+    char pmm_line_fallback[PMM_STATS_BUFFER_SIZE];
+    char* line = g_pmm_stats_buffer != 0 ? g_pmm_stats_buffer : pmm_line_fallback;
 
-    kprint(" total bytes : ");
-    kprint_hex64(total_bytes);
-    terminal_write_char('\n');
-    kprint(" used bytes  : ");
-    kprint_hex64(used_bytes);
-    terminal_write_char('\n');
-    kprint(" free bytes  : ");
-    kprint_hex64(free_bytes);
-    terminal_write_char('\n');
+    kprintln("PMM stats:");
+
+    uint32_t line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " total frames: ");
+    sbuf_append_dec_u32(line, PMM_STATS_BUFFER_SIZE, &line_len, stats.total_frames);
+    kprintln(line);
+
+    line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " used frames : ");
+    sbuf_append_dec_u32(line, PMM_STATS_BUFFER_SIZE, &line_len, stats.used_frames);
+    kprintln(line);
+
+    line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " free frames : ");
+    sbuf_append_dec_u32(line, PMM_STATS_BUFFER_SIZE, &line_len, stats.free_frames);
+    kprintln(line);
+
+    line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " total bytes : ");
+    sbuf_append_hex64(line, PMM_STATS_BUFFER_SIZE, &line_len, total_bytes);
+    kprintln(line);
+
+    line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " used bytes  : ");
+    sbuf_append_hex64(line, PMM_STATS_BUFFER_SIZE, &line_len, used_bytes);
+    kprintln(line);
+
+    line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " free bytes  : ");
+    sbuf_append_hex64(line, PMM_STATS_BUFFER_SIZE, &line_len, free_bytes);
+    kprintln(line);
 }
 
 static const char* mem_type_name(uint32_t type) {
@@ -475,6 +507,11 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     g_memmap_line_buffer = (char*)kmalloc(MEMMAP_LINE_BUFFER_SIZE);
     if (g_memmap_line_buffer == 0) {
         kprintln("Warning: memmap line buffer uses stack fallback (heap alloc failed).");
+    }
+
+    g_pmm_stats_buffer = (char*)kmalloc(PMM_STATS_BUFFER_SIZE);
+    if (g_pmm_stats_buffer == 0) {
+        kprintln("Warning: PMM stats buffer uses stack fallback (heap alloc failed).");
     }
 
     kprint("> ");
