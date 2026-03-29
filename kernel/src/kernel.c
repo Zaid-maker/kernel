@@ -157,6 +157,16 @@ static void sbuf_append_hex64(char* buffer, uint32_t cap, uint32_t* len, uint64_
     }
 }
 
+static void sbuf_append_hex_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
+    static const char hex[] = "0123456789ABCDEF";
+
+    sbuf_append_str(buffer, cap, len, "0x");
+    for (int shift = 28; shift >= 0; shift -= 4) {
+        const uint32_t nibble = (value >> (uint32_t)shift) & 0xFu;
+        sbuf_append_char(buffer, cap, len, hex[nibble]);
+    }
+}
+
 static int shell_store_history(const char* cmd) {
     uint32_t len = cstr_len(cmd);
     if (len == 0u) {
@@ -237,16 +247,6 @@ static void shell_print_heap(void) {
     sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &line_len, " free blocks : ");
     sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &line_len, stats.free_blocks);
     kprintln(line);
-}
-
-static void sbuf_append_hex_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
-    static const char hex[] = "0123456789ABCDEF";
-
-    sbuf_append_str(buffer, cap, len, "0x");
-    for (int shift = 28; shift >= 0; shift -= 4) {
-        const uint32_t nibble = (value >> (uint32_t)shift) & 0xFu;
-        sbuf_append_char(buffer, cap, len, hex[nibble]);
-    }
 }
 
 static void shell_print_pmm(void) {
