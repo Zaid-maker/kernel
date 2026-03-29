@@ -18,6 +18,7 @@ void sbuf_append_str(char* buffer, uint32_t cap, uint32_t* len, const char* text
     uint32_t i = 0;
     while (text[i] != '\0') {
         if (*len + 1u >= cap) {
+            buffer[*len] = '\0';
             return;
         }
 
