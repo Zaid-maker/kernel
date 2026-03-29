@@ -50,6 +50,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
 - Heap-backed keyboard IRQ queue with static fallback when allocation is unavailable.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
+- Heap-backed exception diagnostics workspace buffer with static fallback.
 - PIT timer IRQ0 support with uptime display in the status bar.
 - Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `history`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
@@ -131,6 +132,7 @@ make -C kernel run
 - Keyboard input remains functional if heap queue allocation fails (fallback queue path).
 - Decimal printing remains functional if print-buffer heap allocation fails (fallback path).
 - `memmap` output remains readable if scratch-buffer heap allocation fails (fallback path).
+- Exception diagnostics output remains readable if workspace-buffer heap allocation fails (fallback path).
 
 ## Clean
 
