@@ -19,7 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: kernel
@@ -50,6 +49,6 @@ jobs:
         with:
           files: kernel/build/coverage/lcov.info
           disable_search: true
-          use_oidc: true
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
           verbose: false
