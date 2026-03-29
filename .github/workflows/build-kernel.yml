@@ -37,6 +37,9 @@ jobs:
             xorriso \
             mtools
 
+      - name: Run host-side unit tests
+        run: make test CROSS_COMPILE=
+
       - name: Build kernel binary
         run: make all CROSS_COMPILE=
 

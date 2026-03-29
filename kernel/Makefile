@@ -2,10 +2,12 @@ CROSS_COMPILE ?= i686-elf-
 CC := $(CROSS_COMPILE)gcc
 AS := $(CROSS_COMPILE)as
 LD := $(CROSS_COMPILE)ld
+HOST_CC ?= gcc
 
 CFLAGS := -std=gnu11 -ffreestanding -O2 -Wall -Wextra -m32
 ASFLAGS := --32
 LDFLAGS := -T linker.ld -m elf_i386
+HOST_CFLAGS := -std=c11 -O2 -Wall -Wextra
 
 VERSION_FILE := VERSION
 KERNEL_VERSION ?= $(shell cat $(VERSION_FILE) 2>/dev/null || echo v0.0.0-dev)
@@ -18,12 +20,12 @@ KERNEL_ELF := $(BUILD_DIR)/kernel.elf
 ISO_IMAGE := $(BUILD_DIR)/kernel.iso
 
 SRC_ASM := src/boot.s src/isr.s
-SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c src/interrupts.c src/timer.c src/pmm.c src/heap.c
+SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/sbuf.c
 
 OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
 
-.PHONY: all clean run iso check-tools
+.PHONY: all clean run iso check-tools test
 
 all: $(KERNEL_BIN)
 
@@ -57,6 +59,10 @@ iso: $(KERNEL_BIN)
 
 run: iso
 	qemu-system-i386 -cdrom $(ISO_IMAGE)
+
+test: $(BUILD_DIR)
+	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_test
+	$(BUILD_DIR)/sbuf_test
 
 clean:
 	rm -rf $(BUILD_DIR)
