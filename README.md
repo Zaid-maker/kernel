@@ -53,6 +53,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - PIT timer IRQ0 support with uptime display in the status bar.
 - Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `history`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
+- Heap-backed memmap line scratch buffer with stack fallback.
 - Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
 - Heap allocator groundwork with `kmalloc`/`kfree` and `heap` shell stats command.
 - Heap-backed dynamic shell input buffer with growth and last-command history (`history`).
@@ -129,6 +130,7 @@ make -C kernel run
 - Status bar continues updating lock states and uptime while typing commands.
 - Keyboard input remains functional if heap queue allocation fails (fallback queue path).
 - Decimal printing remains functional if print-buffer heap allocation fails (fallback path).
+- `memmap` output remains readable if scratch-buffer heap allocation fails (fallback path).
 
 ## Clean
 
