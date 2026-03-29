@@ -64,19 +64,24 @@ run: iso
 test: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_test
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_integration_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_integration_test
+	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_boundary_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_boundary_test
 	$(BUILD_DIR)/sbuf_test
 	$(BUILD_DIR)/sbuf_integration_test
+	$(BUILD_DIR)/sbuf_boundary_test
 
 coverage: $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/coverage
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/sbuf.c -o $(BUILD_DIR)/sbuf_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_test.c -o $(BUILD_DIR)/sbuf_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_integration_test.c -o $(BUILD_DIR)/sbuf_integration_test_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_boundary_test.c -o $(BUILD_DIR)/sbuf_boundary_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_integration_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_integration_test_cov
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_boundary_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_boundary_test_cov
 	lcov --zerocounters --directory $(BUILD_DIR)
 	$(BUILD_DIR)/sbuf_test_cov
 	$(BUILD_DIR)/sbuf_integration_test_cov
+	$(BUILD_DIR)/sbuf_boundary_test_cov
 	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage/lcov.raw.info
 	lcov --remove $(BUILD_DIR)/coverage/lcov.raw.info '/usr/*' '*/tests/*' --output-file $(BUILD_DIR)/coverage/lcov.info
 	lcov --summary $(BUILD_DIR)/coverage/lcov.info
