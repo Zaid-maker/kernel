@@ -42,6 +42,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - VGA text-mode terminal with color support.
 - Newline, tab handling, and automatic scroll when output reaches the screen bottom.
 - Small decimal and hexadecimal print helpers for kernel diagnostics.
+- Heap-backed decimal print formatting buffer with static fallback.
 - PS/2 keyboard input with basic US scancode translation.
 - Caps Lock handling for alphabetic keys and Num Lock handling for keypad digits.
 - Lock key LED synchronization for Caps Lock, Num Lock, and Scroll Lock.
@@ -127,6 +128,7 @@ make -C kernel run
 - Run more than 16 commands; `history` keeps only the most recent entries.
 - Status bar continues updating lock states and uptime while typing commands.
 - Keyboard input remains functional if heap queue allocation fails (fallback queue path).
+- Decimal printing remains functional if print-buffer heap allocation fails (fallback path).
 
 ## Clean
 

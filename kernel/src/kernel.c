@@ -364,6 +364,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_initialize();
     pmm_initialize(g_multiboot_magic, g_multiboot_info);
     heap_initialize();
+    const int print_heap_buffer_ok = print_initialize();
     const int keyboard_heap_queue_ok = keyboard_initialize();
     interrupts_initialize();
     timer_initialize(100u);
@@ -390,6 +391,9 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_write_char('\n');
 
     kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
+    if (!print_heap_buffer_ok) {
+        kprintln("Warning: print decimal buffer heap allocation failed; using static fallback.");
+    }
     if (!keyboard_heap_queue_ok) {
         kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
     }
