@@ -17,12 +17,14 @@ enum {
     SHELL_INPUT_INITIAL = 128,
     SHELL_INPUT_MAX = 1024,
     SHELL_HISTORY_SIZE = 16,
-    STATUS_UPTIME_BUFFER_SIZE = 24
+    STATUS_UPTIME_BUFFER_SIZE = 24,
+    MEMMAP_LINE_BUFFER_SIZE = 160
 };
 
 static uint32_t g_multiboot_magic = 0;
 static const struct multiboot_info* g_multiboot_info = (const struct multiboot_info*)0;
 static char* g_status_uptime_buffer = (char*)0;
+static char* g_memmap_line_buffer = (char*)0;
 static char* g_command_history[SHELL_HISTORY_SIZE];
 static uint32_t g_command_history_head = 0;
 static uint32_t g_command_history_count = 0;
@@ -92,6 +94,63 @@ static char* cstr_dup_heap(const char* s) {
     }
     out[len] = '\0';
     return out;
+}
+
+static void sbuf_reset(char* buffer) {
+    buffer[0] = '\0';
+}
+
+static void sbuf_append_char(char* buffer, uint32_t cap, uint32_t* len, char c) {
+    if (*len + 1u >= cap) {
+        return;
+    }
+
+    buffer[*len] = c;
+    ++(*len);
+    buffer[*len] = '\0';
+}
+
+static void sbuf_append_str(char* buffer, uint32_t cap, uint32_t* len, const char* text) {
+    uint32_t i = 0;
+    while (text[i] != '\0') {
+        if (*len + 1u >= cap) {
+            return;
+        }
+
+        buffer[*len] = text[i];
+        ++(*len);
+        ++i;
+    }
+
+    buffer[*len] = '\0';
+}
+
+static void sbuf_append_dec_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
+    if (value == 0u) {
+        sbuf_append_char(buffer, cap, len, '0');
+        return;
+    }
+
+    char digits[10];
+    uint32_t pos = 0;
+    while (value != 0u && pos < 10u) {
+        digits[pos++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    }
+
+    while (pos > 0u) {
+        sbuf_append_char(buffer, cap, len, digits[--pos]);
+    }
+}
+
+static void sbuf_append_hex64(char* buffer, uint32_t cap, uint32_t* len, uint64_t value) {
+    static const char hex[] = "0123456789ABCDEF";
+
+    sbuf_append_str(buffer, cap, len, "0x");
+    for (int shift = 60; shift >= 0; shift -= 4) {
+        const uint32_t nibble = (uint32_t)((value >> (uint32_t)shift) & 0xFu);
+        sbuf_append_char(buffer, cap, len, hex[nibble]);
+    }
 }
 
 static int shell_store_history(const char* cmd) {
@@ -214,20 +273,24 @@ static void shell_print_memmap(void) {
     uint32_t index = 0;
     uint32_t available_count = 0;
     uint64_t available_bytes = 0;
+    char memmap_line_fallback[MEMMAP_LINE_BUFFER_SIZE];
+    char* line = g_memmap_line_buffer != 0 ? g_memmap_line_buffer : memmap_line_fallback;
 
     kprintln("Memory map entries:");
     while (cursor < end) {
         const struct multiboot_mmap_entry* entry = (const struct multiboot_mmap_entry*)(uintptr_t)cursor;
 
-        kprint(" #");
-        kprint_dec(index);
-        kprint(" ");
-        kprint(mem_type_name(entry->type));
-        kprint(" base=");
-        kprint_hex64(entry->addr);
-        kprint(" len=");
-        kprint_hex64(entry->len);
-        terminal_write_char('\n');
+        uint32_t line_len = 0;
+        sbuf_reset(line);
+        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " #");
+        sbuf_append_dec_u32(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, index);
+        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " ");
+        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, mem_type_name(entry->type));
+        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " base=");
+        sbuf_append_hex64(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, entry->addr);
+        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " len=");
+        sbuf_append_hex64(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, entry->len);
+        kprintln(line);
 
         if (entry->type == 1u) {
             ++available_count;
@@ -238,12 +301,17 @@ static void shell_print_memmap(void) {
         ++index;
     }
 
-    kprint("Available regions: ");
-    kprint_dec(available_count);
-    terminal_write_char('\n');
-    kprint("Available total bytes: ");
-    kprint_hex64(available_bytes);
-    terminal_write_char('\n');
+    uint32_t line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, "Available regions: ");
+    sbuf_append_dec_u32(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, available_count);
+    kprintln(line);
+
+    line_len = 0;
+    sbuf_reset(line);
+    sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, "Available total bytes: ");
+    sbuf_append_hex64(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, available_bytes);
+    kprintln(line);
 }
 
 static void shell_run_command(const char* cmd) {
@@ -364,6 +432,8 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_initialize();
     pmm_initialize(g_multiboot_magic, g_multiboot_info);
     heap_initialize();
+    const int print_heap_buffer_ok = print_initialize();
+    const int keyboard_heap_queue_ok = keyboard_initialize();
     interrupts_initialize();
     timer_initialize(100u);
     interrupts_enable();
@@ -389,11 +459,22 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_write_char('\n');
 
     kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
+    if (!print_heap_buffer_ok) {
+        kprintln("Warning: print decimal buffer heap allocation failed; using static fallback.");
+    }
+    if (!keyboard_heap_queue_ok) {
+        kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
+    }
     kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, history):");
 
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {
         kprintln("Warning: status bar uptime uses stack fallback (heap alloc failed).");
+    }
+
+    g_memmap_line_buffer = (char*)kmalloc(MEMMAP_LINE_BUFFER_SIZE);
+    if (g_memmap_line_buffer == 0) {
+        kprintln("Warning: memmap line buffer uses stack fallback (heap alloc failed).");
     }
 
     kprint("> ");

@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "heap.h"
 #include "keyboard.h"
 #include "print.h"
 #include "timer.h"
@@ -127,6 +128,70 @@ static const char* const exception_names[32] = {
     "Reserved",
 };
 
+enum {
+    EXCEPTION_DIAG_BUFFER_SIZE = 160
+};
+
+static char g_exception_diag_fallback[EXCEPTION_DIAG_BUFFER_SIZE];
+static char* g_exception_diag_buffer = g_exception_diag_fallback;
+
+static void diag_reset(char* buffer) {
+    buffer[0] = '\0';
+}
+
+static void diag_append_char(char* buffer, uint32_t cap, uint32_t* len, char c) {
+    if (*len + 1u >= cap) {
+        return;
+    }
+
+    buffer[*len] = c;
+    ++(*len);
+    buffer[*len] = '\0';
+}
+
+static void diag_append_str(char* buffer, uint32_t cap, uint32_t* len, const char* text) {
+    uint32_t i = 0;
+    while (text[i] != '\0') {
+        if (*len + 1u >= cap) {
+            return;
+        }
+
+        buffer[*len] = text[i];
+        ++(*len);
+        ++i;
+    }
+
+    buffer[*len] = '\0';
+}
+
+static void diag_append_dec_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
+    if (value == 0u) {
+        diag_append_char(buffer, cap, len, '0');
+        return;
+    }
+
+    char digits[10];
+    uint32_t pos = 0;
+    while (value != 0u && pos < 10u) {
+        digits[pos++] = (char)('0' + (value % 10u));
+        value /= 10u;
+    }
+
+    while (pos > 0u) {
+        diag_append_char(buffer, cap, len, digits[--pos]);
+    }
+}
+
+static void diag_append_hex_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
+    static const char hex[] = "0123456789ABCDEF";
+
+    diag_append_str(buffer, cap, len, "0x");
+    for (int shift = 28; shift >= 0; shift -= 4) {
+        const uint32_t nibble = (value >> (uint32_t)shift) & 0xFu;
+        diag_append_char(buffer, cap, len, hex[nibble]);
+    }
+}
+
 static inline uint8_t port_inb(uint16_t port) {
     uint8_t value;
     __asm__ volatile("inb %1, %0" : "=a"(value) : "Nd"(port));
@@ -218,6 +283,13 @@ static int exception_has_error_code(uint32_t vector) {
 }
 
 void interrupts_initialize(void) {
+    char* heap_diag_buffer = (char*)kmalloc(EXCEPTION_DIAG_BUFFER_SIZE);
+    if (heap_diag_buffer != 0) {
+        g_exception_diag_buffer = heap_diag_buffer;
+    } else {
+        g_exception_diag_buffer = g_exception_diag_fallback;
+    }
+
     for (uint32_t i = 0; i < 256u; ++i) {
         idt_set_gate((uint8_t)i, 0, 0, 0);
     }
@@ -260,34 +332,48 @@ void interrupts_handle_exception(uint32_t vector, uint32_t error_code, uint32_t 
     kprintln("A CPU exception occurred. System halted.");
     terminal_write_char('\n');
 
-    kprint("Vector: ");
-    kprint_dec(vector);
-    kprint(" - ");
+    char diag_fallback[EXCEPTION_DIAG_BUFFER_SIZE];
+    char* line = g_exception_diag_buffer != 0 ? g_exception_diag_buffer : diag_fallback;
+    uint32_t len = 0;
+
+    diag_reset(line);
+    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "Vector: ");
+    diag_append_dec_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, vector);
+    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, " - ");
     if (vector < 32u) {
-        kprintln(exception_names[vector]);
+        diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, exception_names[vector]);
     } else {
-        kprintln("Unknown Exception");
+        diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "Unknown Exception");
     }
+    kprintln(line);
 
-    kprint("Error code: ");
+    len = 0;
+    diag_reset(line);
+    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "Error code: ");
     if (exception_has_error_code(vector)) {
-        kprint_hex(error_code);
+        diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, error_code);
     } else {
-        kprint("N/A");
+        diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "N/A");
     }
-    terminal_write_char('\n');
+    kprintln(line);
 
-    kprint("EIP: ");
-    kprint_hex(eip);
-    terminal_write_char('\n');
+    len = 0;
+    diag_reset(line);
+    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "EIP: ");
+    diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, eip);
+    kprintln(line);
 
-    kprint("CS: ");
-    kprint_hex(cs);
-    terminal_write_char('\n');
+    len = 0;
+    diag_reset(line);
+    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "CS: ");
+    diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, cs);
+    kprintln(line);
 
-    kprint("EFLAGS: ");
-    kprint_hex(eflags);
-    terminal_write_char('\n');
+    len = 0;
+    diag_reset(line);
+    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "EFLAGS: ");
+    diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, eflags);
+    kprintln(line);
 
     terminal_write_char('\n');
     kprintln("Reset or power cycle to recover.");

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+int print_initialize(void);
 void kprint(const char* data);
 void kprintln(const char* data);
 void kprint_dec(uint32_t value);

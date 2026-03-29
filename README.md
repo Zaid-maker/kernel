@@ -42,15 +42,19 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - VGA text-mode terminal with color support.
 - Newline, tab handling, and automatic scroll when output reaches the screen bottom.
 - Small decimal and hexadecimal print helpers for kernel diagnostics.
+- Heap-backed decimal print formatting buffer with static fallback.
 - PS/2 keyboard input with basic US scancode translation.
 - Caps Lock handling for alphabetic keys and Num Lock handling for keypad digits.
 - Lock key LED synchronization for Caps Lock, Num Lock, and Scroll Lock.
 - Persistent bottom-row lock status bar showing CAPS/NUM/SCRL states.
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
+- Heap-backed keyboard IRQ queue with static fallback when allocation is unavailable.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
+- Heap-backed exception diagnostics workspace buffer with static fallback.
 - PIT timer IRQ0 support with uptime display in the status bar.
 - Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `history`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
+- Heap-backed memmap line scratch buffer with stack fallback.
 - Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
 - Heap allocator groundwork with `kmalloc`/`kfree` and `heap` shell stats command.
 - Heap-backed dynamic shell input buffer with growth and last-command history (`history`).
@@ -62,7 +66,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260329`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260329.1`
 
 ## Project Website
 
@@ -125,6 +129,10 @@ make -C kernel run
 - Run several commands, then `history` prints recent commands in order.
 - Run more than 16 commands; `history` keeps only the most recent entries.
 - Status bar continues updating lock states and uptime while typing commands.
+- Keyboard input remains functional if heap queue allocation fails (fallback queue path).
+- Decimal printing remains functional if print-buffer heap allocation fails (fallback path).
+- `memmap` output remains readable if scratch-buffer heap allocation fails (fallback path).
+- Exception diagnostics output remains readable if workspace-buffer heap allocation fails (fallback path).
 
 ## Clean
 

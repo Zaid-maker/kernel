@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+int keyboard_initialize(void);
 char keyboard_read_char(void);
 void keyboard_handle_irq(void);
 uint8_t keyboard_is_caps_lock_on(void);
