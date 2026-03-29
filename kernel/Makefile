@@ -8,6 +8,7 @@ CFLAGS := -std=gnu11 -ffreestanding -O2 -Wall -Wextra -m32
 ASFLAGS := --32
 LDFLAGS := -T linker.ld -m elf_i386
 HOST_CFLAGS := -std=c11 -O2 -Wall -Wextra
+HOST_COVERAGE_CFLAGS := $(HOST_CFLAGS) --coverage
 
 VERSION_FILE := VERSION
 KERNEL_VERSION ?= $(shell cat $(VERSION_FILE) 2>/dev/null || echo v0.0.0-dev)
@@ -25,7 +26,7 @@ SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c src/interrupts.c
 OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
 
-.PHONY: all clean run iso check-tools test
+.PHONY: all clean run iso check-tools test coverage
 
 all: $(KERNEL_BIN)
 
@@ -65,6 +66,20 @@ test: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_integration_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_integration_test
 	$(BUILD_DIR)/sbuf_test
 	$(BUILD_DIR)/sbuf_integration_test
+
+coverage: $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)/coverage
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/sbuf.c -o $(BUILD_DIR)/sbuf_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_test.c -o $(BUILD_DIR)/sbuf_test_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_integration_test.c -o $(BUILD_DIR)/sbuf_integration_test_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_test_cov
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_integration_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_integration_test_cov
+	lcov --zerocounters --directory $(BUILD_DIR)
+	$(BUILD_DIR)/sbuf_test_cov
+	$(BUILD_DIR)/sbuf_integration_test_cov
+	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage/lcov.raw.info
+	lcov --remove $(BUILD_DIR)/coverage/lcov.raw.info '/usr/*' '*/tests/*' --output-file $(BUILD_DIR)/coverage/lcov.info
+	lcov --summary $(BUILD_DIR)/coverage/lcov.info
 
 clean:
 	rm -rf $(BUILD_DIR)
