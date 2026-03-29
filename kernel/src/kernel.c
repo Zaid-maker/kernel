@@ -6,7 +6,7 @@
 #include "heap.h"
 #include "pmm.h"
 #include "print.h"
-#include "sbuf.h"
+#include "stats_util.h"
 #include "timer.h"
 #include "terminal.h"
 
@@ -152,34 +152,19 @@ static void shell_print_heap(void) {
 
     kprintln("Heap stats:");
 
-    uint32_t line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &line_len, " total bytes : ");
-    sbuf_append_hex_u32(line, HEAP_STATS_BUFFER_SIZE, &line_len, stats.total_bytes);
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " total bytes : ", stats.total_bytes);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &line_len, " used bytes  : ");
-    sbuf_append_hex_u32(line, HEAP_STATS_BUFFER_SIZE, &line_len, stats.used_bytes);
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " used bytes  : ", stats.used_bytes);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &line_len, " free bytes  : ");
-    sbuf_append_hex_u32(line, HEAP_STATS_BUFFER_SIZE, &line_len, stats.free_bytes);
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " free bytes  : ", stats.free_bytes);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &line_len, " blocks      : ");
-    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &line_len, stats.block_count);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " blocks      : ", stats.block_count);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &line_len, " free blocks : ");
-    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &line_len, stats.free_blocks);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " free blocks : ", stats.free_blocks);
     kprintln(line);
 }
 
@@ -194,40 +179,22 @@ static void shell_print_pmm(void) {
 
     kprintln("PMM stats:");
 
-    uint32_t line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " total frames: ");
-    sbuf_append_dec_u32(line, PMM_STATS_BUFFER_SIZE, &line_len, stats.total_frames);
+    stats_format_label_dec(line, PMM_STATS_BUFFER_SIZE, " total frames: ", stats.total_frames);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " used frames : ");
-    sbuf_append_dec_u32(line, PMM_STATS_BUFFER_SIZE, &line_len, stats.used_frames);
+    stats_format_label_dec(line, PMM_STATS_BUFFER_SIZE, " used frames : ", stats.used_frames);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " free frames : ");
-    sbuf_append_dec_u32(line, PMM_STATS_BUFFER_SIZE, &line_len, stats.free_frames);
+    stats_format_label_dec(line, PMM_STATS_BUFFER_SIZE, " free frames : ", stats.free_frames);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " total bytes : ");
-    sbuf_append_hex64(line, PMM_STATS_BUFFER_SIZE, &line_len, total_bytes);
+    stats_format_label_hex64(line, PMM_STATS_BUFFER_SIZE, " total bytes : ", total_bytes);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " used bytes  : ");
-    sbuf_append_hex64(line, PMM_STATS_BUFFER_SIZE, &line_len, used_bytes);
+    stats_format_label_hex64(line, PMM_STATS_BUFFER_SIZE, " used bytes  : ", used_bytes);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, PMM_STATS_BUFFER_SIZE, &line_len, " free bytes  : ");
-    sbuf_append_hex64(line, PMM_STATS_BUFFER_SIZE, &line_len, free_bytes);
+    stats_format_label_hex64(line, PMM_STATS_BUFFER_SIZE, " free bytes  : ", free_bytes);
     kprintln(line);
 }
 
@@ -266,16 +233,14 @@ static void shell_print_memmap(void) {
     while (cursor < end) {
         const struct multiboot_mmap_entry* entry = (const struct multiboot_mmap_entry*)(uintptr_t)cursor;
 
-        uint32_t line_len = 0;
-        sbuf_reset(line);
-        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " #");
-        sbuf_append_dec_u32(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, index);
-        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " ");
-        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, mem_type_name(entry->type));
-        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " base=");
-        sbuf_append_hex64(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, entry->addr);
-        sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, " len=");
-        sbuf_append_hex64(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, entry->len);
+        stats_format_memmap_entry_line(
+            line,
+            MEMMAP_LINE_BUFFER_SIZE,
+            index,
+            mem_type_name(entry->type),
+            entry->addr,
+            entry->len
+        );
         kprintln(line);
 
         if (entry->type == 1u) {
@@ -287,16 +252,10 @@ static void shell_print_memmap(void) {
         ++index;
     }
 
-    uint32_t line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, "Available regions: ");
-    sbuf_append_dec_u32(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, available_count);
+    stats_format_label_dec(line, MEMMAP_LINE_BUFFER_SIZE, "Available regions: ", available_count);
     kprintln(line);
 
-    line_len = 0;
-    sbuf_reset(line);
-    sbuf_append_str(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, "Available total bytes: ");
-    sbuf_append_hex64(line, MEMMAP_LINE_BUFFER_SIZE, &line_len, available_bytes);
+    stats_format_label_hex64(line, MEMMAP_LINE_BUFFER_SIZE, "Available total bytes: ", available_bytes);
     kprintln(line);
 }
 

@@ -5,6 +5,7 @@
 #include "heap.h"
 #include "keyboard.h"
 #include "print.h"
+#include "stats_util.h"
 #include "timer.h"
 #include "terminal.h"
 
@@ -134,63 +135,6 @@ enum {
 
 static char g_exception_diag_fallback[EXCEPTION_DIAG_BUFFER_SIZE];
 static char* g_exception_diag_buffer = g_exception_diag_fallback;
-
-static void diag_reset(char* buffer) {
-    buffer[0] = '\0';
-}
-
-static void diag_append_char(char* buffer, uint32_t cap, uint32_t* len, char c) {
-    if (*len + 1u >= cap) {
-        return;
-    }
-
-    buffer[*len] = c;
-    ++(*len);
-    buffer[*len] = '\0';
-}
-
-static void diag_append_str(char* buffer, uint32_t cap, uint32_t* len, const char* text) {
-    uint32_t i = 0;
-    while (text[i] != '\0') {
-        if (*len + 1u >= cap) {
-            return;
-        }
-
-        buffer[*len] = text[i];
-        ++(*len);
-        ++i;
-    }
-
-    buffer[*len] = '\0';
-}
-
-static void diag_append_dec_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
-    if (value == 0u) {
-        diag_append_char(buffer, cap, len, '0');
-        return;
-    }
-
-    char digits[10];
-    uint32_t pos = 0;
-    while (value != 0u && pos < 10u) {
-        digits[pos++] = (char)('0' + (value % 10u));
-        value /= 10u;
-    }
-
-    while (pos > 0u) {
-        diag_append_char(buffer, cap, len, digits[--pos]);
-    }
-}
-
-static void diag_append_hex_u32(char* buffer, uint32_t cap, uint32_t* len, uint32_t value) {
-    static const char hex[] = "0123456789ABCDEF";
-
-    diag_append_str(buffer, cap, len, "0x");
-    for (int shift = 28; shift >= 0; shift -= 4) {
-        const uint32_t nibble = (value >> (uint32_t)shift) & 0xFu;
-        diag_append_char(buffer, cap, len, hex[nibble]);
-    }
-}
 
 static inline uint8_t port_inb(uint16_t port) {
     uint8_t value;
@@ -334,45 +278,29 @@ void interrupts_handle_exception(uint32_t vector, uint32_t error_code, uint32_t 
 
     char diag_fallback[EXCEPTION_DIAG_BUFFER_SIZE];
     char* line = g_exception_diag_buffer != 0 ? g_exception_diag_buffer : diag_fallback;
-    uint32_t len = 0;
 
-    diag_reset(line);
-    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "Vector: ");
-    diag_append_dec_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, vector);
-    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, " - ");
-    if (vector < 32u) {
-        diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, exception_names[vector]);
-    } else {
-        diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "Unknown Exception");
-    }
+    stats_format_vector_line(
+        line,
+        EXCEPTION_DIAG_BUFFER_SIZE,
+        vector,
+        vector < 32u ? exception_names[vector] : "Unknown Exception"
+    );
     kprintln(line);
 
-    len = 0;
-    diag_reset(line);
-    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "Error code: ");
     if (exception_has_error_code(vector)) {
-        diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, error_code);
+        stats_format_label_hex32(line, EXCEPTION_DIAG_BUFFER_SIZE, "Error code: ", error_code);
     } else {
-        diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "N/A");
+        stats_format_label_text(line, EXCEPTION_DIAG_BUFFER_SIZE, "Error code: ", "N/A");
     }
     kprintln(line);
 
-    len = 0;
-    diag_reset(line);
-    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "EIP: ");
-    diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, eip);
+    stats_format_label_hex32(line, EXCEPTION_DIAG_BUFFER_SIZE, "EIP: ", eip);
     kprintln(line);
 
-    len = 0;
-    diag_reset(line);
-    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "CS: ");
-    diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, cs);
+    stats_format_label_hex32(line, EXCEPTION_DIAG_BUFFER_SIZE, "CS: ", cs);
     kprintln(line);
 
-    len = 0;
-    diag_reset(line);
-    diag_append_str(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, "EFLAGS: ");
-    diag_append_hex_u32(line, EXCEPTION_DIAG_BUFFER_SIZE, &len, eflags);
+    stats_format_label_hex32(line, EXCEPTION_DIAG_BUFFER_SIZE, "EFLAGS: ", eflags);
     kprintln(line);
 
     terminal_write_char('\n');
