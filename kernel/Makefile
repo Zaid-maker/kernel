@@ -62,7 +62,9 @@ run: iso
 
 test: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_test
+	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_integration_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_integration_test
 	$(BUILD_DIR)/sbuf_test
+	$(BUILD_DIR)/sbuf_integration_test
 
 clean:
 	rm -rf $(BUILD_DIR)
