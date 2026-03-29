@@ -56,7 +56,9 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
 - Heap-backed memmap line scratch buffer with stack fallback.
 - Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
+- Heap-backed PMM stats line buffer with stack fallback.
 - Heap allocator groundwork with `kmalloc`/`kfree` and `heap` shell stats command.
+- Heap-backed heap stats line buffer with stack fallback.
 - Heap-backed dynamic shell input buffer with growth and last-command history (`history`).
 - Kernel version string embedded at build time and shown on boot.
 
@@ -66,7 +68,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260329.1`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260329.2`
 
 ## Project Website
 
@@ -133,6 +135,8 @@ make -C kernel run
 - Decimal printing remains functional if print-buffer heap allocation fails (fallback path).
 - `memmap` output remains readable if scratch-buffer heap allocation fails (fallback path).
 - Exception diagnostics output remains readable if workspace-buffer heap allocation fails (fallback path).
+- PMM stats output remains readable if stats-buffer heap allocation fails (fallback path).
+- Heap stats output remains readable if stats-buffer heap allocation fails (fallback path).
 
 ## Clean
 
