@@ -66,7 +66,7 @@ LOCKS  CAPS:OFF  NUM:ON  SCRL:OFF
         </article>
         <article class="card">
           <h3>Keyboard</h3>
-          <p>IRQ1 interrupt-driven PS/2 input, US scancode translation, lock key behavior, and LED synchronization.</p>
+          <p>IRQ1 interrupt-driven PS/2 input, US scancode translation, lock key behavior, LED synchronization, and a heap-backed input queue with fallback.</p>
         </article>
         <article class="card">
           <h3>Status Bar</h3>
@@ -148,7 +148,11 @@ LOCKS  CAPS:OFF  NUM:ON  SCRL:OFF
         </div>
         <div class="point">
           <span></span>
-          <p><strong>Next:</strong> migrate additional kernel buffers/subsystems to heap-backed allocations.</p>
+          <p><strong>Done:</strong> keyboard IRQ queue migrated to heap-backed allocation with static fallback.</p>
+        </div>
+        <div class="point">
+          <span></span>
+          <p><strong>Next:</strong> migrate additional runtime formatting/diagnostic buffers to heap-backed allocations.</p>
         </div>
       </div>
     </section>

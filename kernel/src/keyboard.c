@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "heap.h"
+
 static inline uint8_t port_inb(uint16_t port) {
     uint8_t value;
     __asm__ volatile("inb %1, %0" : "=a"(value) : "Nd"(port));
@@ -92,9 +94,25 @@ enum {
     KEYBOARD_QUEUE_SIZE = 128
 };
 
-static volatile char keyboard_queue[KEYBOARD_QUEUE_SIZE];
+static volatile char keyboard_queue_fallback[KEYBOARD_QUEUE_SIZE];
+static volatile char* keyboard_queue = keyboard_queue_fallback;
 static volatile uint8_t keyboard_queue_head = 0;
 static volatile uint8_t keyboard_queue_tail = 0;
+
+int keyboard_initialize(void) {
+    char* heap_queue = (char*)kmalloc(KEYBOARD_QUEUE_SIZE);
+    if (heap_queue == 0) {
+        keyboard_queue = keyboard_queue_fallback;
+        keyboard_queue_head = 0;
+        keyboard_queue_tail = 0;
+        return 0;
+    }
+
+    keyboard_queue = (volatile char*)heap_queue;
+    keyboard_queue_head = 0;
+    keyboard_queue_tail = 0;
+    return 1;
+}
 
 static void keyboard_queue_push(char c) {
     const uint8_t next = (uint8_t)((keyboard_queue_head + 1u) % KEYBOARD_QUEUE_SIZE);

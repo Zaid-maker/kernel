@@ -47,6 +47,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Lock key LED synchronization for Caps Lock, Num Lock, and Scroll Lock.
 - Persistent bottom-row lock status bar showing CAPS/NUM/SCRL states.
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
+- Heap-backed keyboard IRQ queue with static fallback when allocation is unavailable.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
 - PIT timer IRQ0 support with uptime display in the status bar.
 - Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `history`.
@@ -125,6 +126,7 @@ make -C kernel run
 - Run several commands, then `history` prints recent commands in order.
 - Run more than 16 commands; `history` keeps only the most recent entries.
 - Status bar continues updating lock states and uptime while typing commands.
+- Keyboard input remains functional if heap queue allocation fails (fallback queue path).
 
 ## Clean
 
