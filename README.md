@@ -62,6 +62,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Heap allocator groundwork with `kmalloc`/`kfree` and `heap` shell stats command.
 - Heap-backed heap stats line buffer with stack fallback.
 - Heap-backed dynamic shell input buffer with growth and last-command history (`history`).
+- Dedicated stats utility module (`stats_util`) to consolidate shared stats and diagnostics line formatting.
 - Kernel version string embedded at build time and shown on boot.
 
 ## Versioning
@@ -86,6 +87,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - `kernel/src/kernel.c`: C kernel entry logic and boot demo output.
 - `kernel/src/terminal.c`, `kernel/src/terminal.h`: VGA terminal driver.
 - `kernel/src/print.c`, `kernel/src/print.h`: tiny printing helpers.
+- `kernel/src/stats_util.c`, `kernel/src/stats_util.h`: shared stats/diagnostics line formatting helpers.
 - `kernel/src/keyboard.c`, `kernel/src/keyboard.h`: PS/2 keyboard IRQ handling, queueing, and scancode mapping.
 - `kernel/src/interrupts.c`, `kernel/src/interrupts.h`: IDT setup, PIC remap, and IRQ dispatch.
 - `kernel/src/timer.c`, `kernel/src/timer.h`: PIT configuration and uptime counters.
@@ -156,7 +158,7 @@ This generates an LCOV report at `kernel/build/coverage/lcov.info` for the host-
 - Exception diagnostics output remains readable if workspace-buffer heap allocation fails (fallback path).
 - PMM stats output remains readable if stats-buffer heap allocation fails (fallback path).
 - Heap stats output remains readable if stats-buffer heap allocation fails (fallback path).
-- Shared string-buffer formatting helpers pass host-side unit tests (`make -C kernel test`).
+- Shared formatting helpers (`sbuf` + `stats_util`) pass host-side unit tests (`make -C kernel test`).
 
 ## Clean
 
