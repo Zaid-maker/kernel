@@ -10,6 +10,7 @@ argument-hint: 'What milestone or target should be delivered next?'
 A repeatable workflow to take this kernel project from an empty repo to a releasable build with:
 - Bootable kernel + ISO
 - Iterative feature milestones
+- Side-by-side host unit tests for shared runtime helpers
 - CI and release artifact automation
 - Project website and docs
 - Validation and regression checks at each step
@@ -48,6 +49,7 @@ Use this skill when you need to:
 
 4. Validate immediately after edits
 - Run static diagnostics on all touched files.
+- Run side-by-side host tests via `make -C kernel test` for shared modules (for example formatter helpers).
 - Resolve introduced errors before proceeding.
 - If runtime/compile tools are unavailable in environment, report that limitation explicitly and provide exact commands to run locally/CI.
 
@@ -57,7 +59,9 @@ Use this skill when you need to:
 - For website work, keep landing + docs pages aligned with code reality.
 
 6. Automate distribution
+- CI workflow: run `make -C kernel test` before kernel build and ISO steps.
 - CI workflow: build and upload artifacts (`kernel.bin`, `kernel.elf`, `kernel.iso`, checksums).
+- Release workflow: run `make -C kernel test` before rebuilding release assets.
 - Release workflow: rebuild and attach assets to published releases.
 - Pages workflow: deploy static site and docs.
 
@@ -79,6 +83,7 @@ Use this skill when you need to:
 ## Quality Gates (Done Criteria)
 A milestone is complete only when all are true:
 - Code changes compile conceptually and diagnostics show no new errors in touched files.
+- Side-by-side host tests pass (or an explicit blocker/skip reason is documented).
 - Build/release/site workflows reflect current project structure.
 - README and site/docs are updated to match behavior.
 - User-facing commands and links are explicit and correct.
@@ -87,7 +92,7 @@ A milestone is complete only when all are true:
 ## Output Format For Each Milestone (Required)
 - Implemented: concise summary of delivered behavior
 - Changed files: explicit file list
-- Validation: diagnostics/build/status notes
+- Validation: diagnostics + `make -C kernel test` + build/status notes
 - Next step: exact next action command or release step
 
 ## Example Prompts

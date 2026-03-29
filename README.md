@@ -68,7 +68,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260329.2`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260329.3`
 
 ## Project Website
 
@@ -122,6 +122,14 @@ make -C kernel iso
 make -C kernel run
 ```
 
+## Run Unit Tests (Side-By-Side)
+
+```bash
+make -C kernel test
+```
+
+This runs host-side unit tests for shared formatting helpers (`src/sbuf.c`) in parallel with kernel feature work.
+
 ## Quick Regression Checklist
 
 - Boot reaches shell prompt and prints kernel version.
@@ -137,6 +145,7 @@ make -C kernel run
 - Exception diagnostics output remains readable if workspace-buffer heap allocation fails (fallback path).
 - PMM stats output remains readable if stats-buffer heap allocation fails (fallback path).
 - Heap stats output remains readable if stats-buffer heap allocation fails (fallback path).
+- Shared string-buffer formatting helpers pass host-side unit tests (`make -C kernel test`).
 
 ## Clean
 

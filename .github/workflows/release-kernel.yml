@@ -63,6 +63,10 @@ jobs:
             xorriso \
             mtools
 
+      - name: Run host-side unit tests
+        if: steps.change_check.outputs.kernel_changed == 'true'
+        run: make test CROSS_COMPILE=
+
       - name: Build kernel binary
         if: steps.change_check.outputs.kernel_changed == 'true'
         run: make all CROSS_COMPILE= KERNEL_VERSION=${{ github.event.release.tag_name }}
