@@ -62,7 +62,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260328.6`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260329`
 
 ## Project Website
 
