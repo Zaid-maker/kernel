@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "heap_diag.h"
 #include "pmm.h"
 
 enum {
@@ -85,6 +86,7 @@ static int heap_grow(void) {
 
 void heap_initialize(void) {
     g_heap_head = (struct heap_block*)0;
+    heap_diag_reset();
 }
 
 void* kmalloc(uint32_t size) {
@@ -111,12 +113,15 @@ void* kmalloc(uint32_t size) {
                 }
 
                 cur->free = 0;
-                return (void*)((uintptr_t)cur + block_overhead());
+                void* out = (void*)((uintptr_t)cur + block_overhead());
+                heap_diag_record_alloc((uint32_t)(uintptr_t)out, cur->size);
+                return out;
             }
             cur = cur->next;
         }
 
         if (!heap_grow()) {
+            heap_diag_record_failed_alloc();
             return (void*)0;
         }
     }
@@ -129,11 +134,34 @@ void kfree(void* ptr) {
 
     struct heap_block* block = (struct heap_block*)((uintptr_t)ptr - block_overhead());
     if (block->magic != HEAP_MAGIC) {
+        heap_diag_record_invalid_free();
         return;
     }
 
+    if (block->free) {
+        heap_diag_record_invalid_free();
+        return;
+    }
+
+    heap_diag_record_free((uint32_t)(uintptr_t)ptr, block->size);
     block->free = 1;
     merge_free_neighbors();
+}
+
+void heap_get_diag_counters(struct heap_diag_counters* out) {
+    heap_diag_get_counters(out);
+}
+
+uint32_t heap_trace_snapshot(struct heap_trace_record* out_records, uint32_t max_records) {
+    return heap_diag_trace_snapshot(out_records, max_records);
+}
+
+const uint32_t* heap_hist_bucket_limits(void) {
+    return heap_diag_hist_bucket_limits();
+}
+
+uint32_t heap_hist_bucket_count(void) {
+    return heap_diag_hist_bucket_count();
 }
 
 struct heap_stats heap_get_stats(void) {

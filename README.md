@@ -54,12 +54,12 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
 - Heap-backed exception diagnostics workspace buffer with static fallback.
 - PIT timer IRQ0 support with uptime display in the status bar.
-- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `heapfrag`, `heapstress [rounds]`, `history`.
+- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `heapfrag`, `heapstress [rounds]`, `heaphist`, `heapleaks [max]`, `history`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
 - Heap-backed memmap line scratch buffer with stack fallback.
 - Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
 - Heap-backed PMM stats line buffer with stack fallback.
-- Heap allocator groundwork with `kmalloc`/`kfree` plus shell diagnostics (`heap`, `heapfrag`, `heapstress`).
+- Heap allocator groundwork with `kmalloc`/`kfree` plus shell diagnostics (`heap`, `heapfrag`, `heapstress`, `heaphist`, `heapleaks`).
 - Heap-backed heap stats line buffer with stack fallback.
 - Heap-backed dynamic shell input buffer with growth and last-command history (`history`).
 - Dedicated stats utility module (`stats_util`) to consolidate shared stats and diagnostics line formatting.
@@ -71,7 +71,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260330.1`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260330.2`
 
 ## Project Website
 
@@ -93,7 +93,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - `kernel/src/timer.c`, `kernel/src/timer.h`: PIT configuration and uptime counters.
 - `kernel/src/multiboot.h`: Multiboot data structures used for boot-time memory map parsing.
 - `kernel/src/pmm.c`, `kernel/src/pmm.h`: Physical memory manager bitmap and frame stats APIs.
-- `kernel/src/heap.c`, `kernel/src/heap.h`: Heap allocator (`kmalloc`/`kfree`) and heap/fragmentation statistics.
+- `kernel/src/heap.c`, `kernel/src/heap.h`: Heap allocator (`kmalloc`/`kfree`) with fragmentation stats, live histogram telemetry, and leak-trace snapshots.
 - `kernel/src/isr.s`: interrupt service routine stubs.
 - `kernel/linker.ld`: Links the kernel at 1 MiB.
 - `kernel/grub/grub.cfg`: GRUB menu entry.
@@ -154,13 +154,15 @@ This generates an LCOV report at `kernel/build/coverage/lcov.info` for the host-
 ## Quick Regression Checklist
 
 - Boot reaches shell prompt and prints kernel version.
-- `help` lists `heapfrag` and `heapstress [rounds]` in the command list.
+- `help` lists `heapfrag`, `heapstress [rounds]`, `heaphist`, and `heapleaks [max]` in the command list.
 - Enter more than 128 characters in one command without crashing (dynamic input growth).
 - Use backspace during long input; cursor and command state remain in sync.
 - Run several commands, then `history` prints recent commands in order.
 - Run more than 16 commands; `history` keeps only the most recent entries.
 - Run `heapfrag` and verify largest/smallest free blocks and external fragmentation are printed.
 - Run `heapstress` (and `heapstress 512`) and verify stress summary counters print without hanging.
+- Run `heaphist` and verify live block/byte buckets are printed.
+- Run `heapleaks` (and `heapleaks 32`) and verify active allocation trace rows are printed.
 - Status bar continues updating lock states and uptime while typing commands.
 - Keyboard input remains functional if heap queue allocation fails (fallback queue path).
 - Decimal printing remains functional if print-buffer heap allocation fails (fallback path).

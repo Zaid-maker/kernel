@@ -6,6 +6,7 @@
 #include "heap.h"
 #include "pmm.h"
 #include "print.h"
+#include "sbuf.h"
 #include "stats_util.h"
 #include "timer.h"
 #include "terminal.h"
@@ -21,6 +22,8 @@ enum {
     HEAP_STRESS_SLOTS = 64,
     HEAP_STRESS_DEFAULT_ROUNDS = 256,
     HEAP_STRESS_MAX_ROUNDS = 8192,
+    HEAP_LEAKS_DEFAULT_LIMIT = 16,
+    HEAP_LEAKS_MAX_LIMIT = 64,
     STATUS_UPTIME_BUFFER_SIZE = 24,
     MEMMAP_LINE_BUFFER_SIZE = 160,
     PMM_STATS_BUFFER_SIZE = 160,
@@ -127,6 +130,8 @@ static void shell_print_help(void) {
     kprintln(" - heap");
     kprintln(" - heapfrag");
     kprintln(" - heapstress [rounds]");
+    kprintln(" - heaphist");
+    kprintln(" - heapleaks [max]");
     kprintln(" - history");
 }
 
@@ -340,6 +345,81 @@ static void shell_run_heap_stress(uint32_t rounds) {
     }
 }
 
+static void shell_print_heap_histogram(void) {
+    struct heap_diag_counters diag;
+    heap_get_diag_counters(&diag);
+
+    const uint32_t* limits = heap_hist_bucket_limits();
+    const uint32_t bucket_count = heap_hist_bucket_count();
+
+    char heap_line_fallback[HEAP_STATS_BUFFER_SIZE];
+    char* line = g_heap_stats_buffer != 0 ? g_heap_stats_buffer : heap_line_fallback;
+
+    kprintln("Heap live allocation histogram:");
+
+    for (uint32_t i = 0; i < bucket_count; ++i) {
+        sbuf_reset(line);
+        uint32_t len = 0u;
+        sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " ");
+        if (i == bucket_count - 1u) {
+            sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, ">1024");
+        } else {
+            sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, "<=");
+            sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, limits[i]);
+        }
+        sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " : blocks=");
+        sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, diag.hist_live_blocks[i]);
+        sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " bytes=");
+        sbuf_append_hex_u32(line, HEAP_STATS_BUFFER_SIZE, &len, diag.hist_live_bytes[i]);
+        kprintln(line);
+    }
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " live allocs  : ", diag.live_allocations);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " peak live    : ", diag.peak_live_allocations);
+    kprintln(line);
+}
+
+static void shell_print_heap_leaks(uint32_t max_to_show) {
+    struct heap_diag_counters diag;
+    heap_get_diag_counters(&diag);
+
+    struct heap_trace_record records[HEAP_LEAKS_MAX_LIMIT];
+    const uint32_t snap_limit = max_to_show > HEAP_LEAKS_MAX_LIMIT ? HEAP_LEAKS_MAX_LIMIT : max_to_show;
+    const uint32_t count = heap_trace_snapshot(records, snap_limit);
+
+    char heap_line_fallback[HEAP_STATS_BUFFER_SIZE];
+    char* line = g_heap_stats_buffer != 0 ? g_heap_stats_buffer : heap_line_fallback;
+
+    kprintln("Heap live allocation trace:");
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " showing      : ", count);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " live total   : ", diag.live_allocations);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " alloc calls  : ", diag.alloc_calls);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " free calls   : ", diag.free_calls);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " alloc failed : ", diag.failed_alloc_calls);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " invalid free : ", diag.invalid_free_calls);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " trace ovf    : ", diag.trace_overflow_events);
+    kprintln(line);
+
+    for (uint32_t i = 0; i < count; ++i) {
+        sbuf_reset(line);
+        uint32_t len = 0u;
+        sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " #");
+        sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, i + 1u);
+        sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " addr=");
+        sbuf_append_hex_u32(line, HEAP_STATS_BUFFER_SIZE, &len, records[i].addr);
+        sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " size=");
+        sbuf_append_hex_u32(line, HEAP_STATS_BUFFER_SIZE, &len, records[i].size);
+        kprintln(line);
+    }
+}
+
 static void shell_print_pmm(void) {
     const struct pmm_stats stats = pmm_get_stats();
     const uint64_t total_bytes = (uint64_t)stats.total_frames * 4096u;
@@ -502,6 +582,31 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "heaphist")) {
+        shell_print_heap_histogram();
+        return;
+    }
+
+    if (str_equal(cmd, "heapleaks")) {
+        shell_print_heap_leaks(HEAP_LEAKS_DEFAULT_LIMIT);
+        return;
+    }
+
+    if (str_starts_with(cmd, "heapleaks ")) {
+        uint32_t limit = 0u;
+        if (!parse_u32_strict(cmd + 10, &limit) || limit == 0u) {
+            kprintln("Usage: heapleaks [max>0]");
+            return;
+        }
+
+        if (limit > HEAP_LEAKS_MAX_LIMIT) {
+            limit = HEAP_LEAKS_MAX_LIMIT;
+        }
+
+        shell_print_heap_leaks(limit);
+        return;
+    }
+
     if (str_equal(cmd, "history")) {
         shell_print_history();
         return;
@@ -607,7 +712,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     if (!keyboard_heap_queue_ok) {
         kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
     }
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapfrag, heapstress [rounds], history):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history):");
 
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {
