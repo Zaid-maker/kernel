@@ -21,7 +21,7 @@ KERNEL_ELF := $(BUILD_DIR)/kernel.elf
 ISO_IMAGE := $(BUILD_DIR)/kernel.iso
 
 SRC_ASM := src/boot.s src/isr.s
-SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/sbuf.c src/stats_util.c
+SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c
 
 OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
@@ -66,28 +66,34 @@ test: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_integration_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_integration_test
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_boundary_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_boundary_test
 	$(HOST_CC) $(HOST_CFLAGS) tests/stats_util_test.c src/sbuf.c src/stats_util.c -o $(BUILD_DIR)/stats_util_test
+	$(HOST_CC) $(HOST_CFLAGS) tests/heap_diag_test.c src/heap_diag.c -o $(BUILD_DIR)/heap_diag_test
 	$(BUILD_DIR)/sbuf_test
 	$(BUILD_DIR)/sbuf_integration_test
 	$(BUILD_DIR)/sbuf_boundary_test
 	$(BUILD_DIR)/stats_util_test
+	$(BUILD_DIR)/heap_diag_test
 
 coverage: $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/coverage
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/sbuf.c -o $(BUILD_DIR)/sbuf_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/heap_diag.c -o $(BUILD_DIR)/heap_diag_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/stats_util.c -o $(BUILD_DIR)/stats_util_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_test.c -o $(BUILD_DIR)/sbuf_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_integration_test.c -o $(BUILD_DIR)/sbuf_integration_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_boundary_test.c -o $(BUILD_DIR)/sbuf_boundary_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/stats_util_test.c -o $(BUILD_DIR)/stats_util_test_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/heap_diag_test.c -o $(BUILD_DIR)/heap_diag_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_integration_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_integration_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_boundary_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_boundary_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/stats_util_test_cov.o $(BUILD_DIR)/sbuf_cov.o $(BUILD_DIR)/stats_util_cov.o -o $(BUILD_DIR)/stats_util_test_cov
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_diag_test_cov.o $(BUILD_DIR)/heap_diag_cov.o -o $(BUILD_DIR)/heap_diag_test_cov
 	lcov --zerocounters --directory $(BUILD_DIR)
 	$(BUILD_DIR)/sbuf_test_cov
 	$(BUILD_DIR)/sbuf_integration_test_cov
 	$(BUILD_DIR)/sbuf_boundary_test_cov
 	$(BUILD_DIR)/stats_util_test_cov
+	$(BUILD_DIR)/heap_diag_test_cov
 	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage/lcov.raw.info
 	lcov --remove $(BUILD_DIR)/coverage/lcov.raw.info '/usr/*' '*/tests/*' --output-file $(BUILD_DIR)/coverage/lcov.info
 	lcov --summary $(BUILD_DIR)/coverage/lcov.info

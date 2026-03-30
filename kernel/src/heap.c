@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "heap_diag.h"
 #include "pmm.h"
 
 enum {
@@ -18,16 +19,6 @@ struct heap_block {
 };
 
 static struct heap_block* g_heap_head = (struct heap_block*)0;
-static const uint32_t g_hist_bucket_limits[HEAP_HIST_BUCKETS] = {16u, 32u, 64u, 128u, 256u, 512u, 1024u, 0xFFFFFFFFu};
-
-struct heap_trace_slot {
-    uint8_t used;
-    uint32_t addr;
-    uint32_t size;
-};
-
-static struct heap_diag_counters g_diag;
-static struct heap_trace_slot g_trace_slots[HEAP_TRACE_MAX_RECORDS];
 
 static uint32_t align_up(uint32_t value, uint32_t align) {
     return (value + align - 1u) & ~(align - 1u);
@@ -35,84 +26,6 @@ static uint32_t align_up(uint32_t value, uint32_t align) {
 
 static uint32_t block_overhead(void) {
     return (uint32_t)sizeof(struct heap_block);
-}
-
-static void heap_diag_reset(void) {
-    g_diag.alloc_calls = 0u;
-    g_diag.free_calls = 0u;
-    g_diag.failed_alloc_calls = 0u;
-    g_diag.invalid_free_calls = 0u;
-    g_diag.live_allocations = 0u;
-    g_diag.peak_live_allocations = 0u;
-    g_diag.trace_overflow_events = 0u;
-
-    for (uint32_t i = 0; i < HEAP_HIST_BUCKETS; ++i) {
-        g_diag.hist_live_blocks[i] = 0u;
-        g_diag.hist_live_bytes[i] = 0u;
-    }
-
-    for (uint32_t i = 0; i < HEAP_TRACE_MAX_RECORDS; ++i) {
-        g_trace_slots[i].used = 0u;
-        g_trace_slots[i].addr = 0u;
-        g_trace_slots[i].size = 0u;
-    }
-}
-
-static uint32_t bucket_index_for_size(uint32_t size) {
-    for (uint32_t i = 0; i < HEAP_HIST_BUCKETS; ++i) {
-        if (size <= g_hist_bucket_limits[i]) {
-            return i;
-        }
-    }
-    return HEAP_HIST_BUCKETS - 1u;
-}
-
-static void heap_diag_on_alloc(uint32_t addr, uint32_t size) {
-    const uint32_t bucket = bucket_index_for_size(size);
-    ++g_diag.alloc_calls;
-    ++g_diag.live_allocations;
-    if (g_diag.live_allocations > g_diag.peak_live_allocations) {
-        g_diag.peak_live_allocations = g_diag.live_allocations;
-    }
-    ++g_diag.hist_live_blocks[bucket];
-    g_diag.hist_live_bytes[bucket] += size;
-
-    for (uint32_t i = 0; i < HEAP_TRACE_MAX_RECORDS; ++i) {
-        if (!g_trace_slots[i].used) {
-            g_trace_slots[i].used = 1u;
-            g_trace_slots[i].addr = addr;
-            g_trace_slots[i].size = size;
-            return;
-        }
-    }
-
-    ++g_diag.trace_overflow_events;
-}
-
-static void heap_diag_on_free(uint32_t addr, uint32_t size) {
-    const uint32_t bucket = bucket_index_for_size(size);
-
-    ++g_diag.free_calls;
-    if (g_diag.live_allocations > 0u) {
-        --g_diag.live_allocations;
-    }
-    if (g_diag.hist_live_blocks[bucket] > 0u) {
-        --g_diag.hist_live_blocks[bucket];
-    }
-    if (g_diag.hist_live_bytes[bucket] >= size) {
-        g_diag.hist_live_bytes[bucket] -= size;
-    } else {
-        g_diag.hist_live_bytes[bucket] = 0u;
-    }
-
-    for (uint32_t i = 0; i < HEAP_TRACE_MAX_RECORDS; ++i) {
-        if (g_trace_slots[i].used && g_trace_slots[i].addr == addr) {
-            g_trace_slots[i].used = 0u;
-            g_trace_slots[i].addr = 0u;
-            g_trace_slots[i].size = 0u;
-            return;
-        }
-    }
 }
 
 static void append_block(struct heap_block* block) {
@@ -201,14 +114,14 @@ void* kmalloc(uint32_t size) {
 
                 cur->free = 0;
                 void* out = (void*)((uintptr_t)cur + block_overhead());
-                heap_diag_on_alloc((uint32_t)(uintptr_t)out, cur->size);
+                heap_diag_record_alloc((uint32_t)(uintptr_t)out, cur->size);
                 return out;
             }
             cur = cur->next;
         }
 
         if (!heap_grow()) {
-            ++g_diag.failed_alloc_calls;
+            heap_diag_record_failed_alloc();
             return (void*)0;
         }
     }
@@ -221,51 +134,34 @@ void kfree(void* ptr) {
 
     struct heap_block* block = (struct heap_block*)((uintptr_t)ptr - block_overhead());
     if (block->magic != HEAP_MAGIC) {
-        ++g_diag.invalid_free_calls;
+        heap_diag_record_invalid_free();
         return;
     }
 
     if (block->free) {
-        ++g_diag.invalid_free_calls;
+        heap_diag_record_invalid_free();
         return;
     }
 
-    heap_diag_on_free((uint32_t)(uintptr_t)ptr, block->size);
+    heap_diag_record_free((uint32_t)(uintptr_t)ptr, block->size);
     block->free = 1;
     merge_free_neighbors();
 }
 
 void heap_get_diag_counters(struct heap_diag_counters* out) {
-    if (out == 0) {
-        return;
-    }
-
-    *out = g_diag;
+    heap_diag_get_counters(out);
 }
 
 uint32_t heap_trace_snapshot(struct heap_trace_record* out_records, uint32_t max_records) {
-    if (out_records == 0 || max_records == 0u) {
-        return 0u;
-    }
-
-    uint32_t out_count = 0u;
-    for (uint32_t i = 0; i < HEAP_TRACE_MAX_RECORDS && out_count < max_records; ++i) {
-        if (g_trace_slots[i].used) {
-            out_records[out_count].addr = g_trace_slots[i].addr;
-            out_records[out_count].size = g_trace_slots[i].size;
-            ++out_count;
-        }
-    }
-
-    return out_count;
+    return heap_diag_trace_snapshot(out_records, max_records);
 }
 
 const uint32_t* heap_hist_bucket_limits(void) {
-    return g_hist_bucket_limits;
+    return heap_diag_hist_bucket_limits();
 }
 
 uint32_t heap_hist_bucket_count(void) {
-    return HEAP_HIST_BUCKETS;
+    return heap_diag_hist_bucket_count();
 }
 
 struct heap_stats heap_get_stats(void) {
