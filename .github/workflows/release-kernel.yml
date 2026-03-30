@@ -4,12 +4,18 @@ on:
   release:
     types:
       - published
+  workflow_run:
+    workflows:
+      - Auto Tag And Release
+    types:
+      - completed
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,12 +31,25 @@ jobs:
       - name: Detect kernel changes since previous tag
         id: change_check
         working-directory: .
-        env:
-          CURRENT_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -e
 
-          prev_tag="$(git tag --sort=-creatordate | grep -Fxv "$CURRENT_TAG" | head -n 1 || true)"
+          if [ "${{ github.event_name }}" = "release" ]; then
+            current_tag="${{ github.event.release.tag_name }}"
+          else
+            current_tag="$(git tag --sort=-creatordate | head -n 1 || true)"
+          fi
+
+          if [ -z "$current_tag" ]; then
+            echo "No tag found to evaluate."
+            echo "kernel_changed=false" >> "$GITHUB_OUTPUT"
+            echo "current_tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "current_tag=$current_tag" >> "$GITHUB_OUTPUT"
+
+          prev_tag="$(git tag --sort=-creatordate | grep -Fxv "$current_tag" | head -n 1 || true)"
 
           if [ -z "$prev_tag" ]; then
             echo "No previous tag found; treating as changed."
@@ -38,11 +57,11 @@ jobs:
             exit 0
           fi
 
-          if git diff --quiet "$prev_tag" "$CURRENT_TAG" -- kernel; then
-            echo "No kernel/ changes between $prev_tag and $CURRENT_TAG."
+          if git diff --quiet "$prev_tag" "$current_tag" -- kernel; then
+            echo "No kernel/ changes between $prev_tag and $current_tag."
             echo "kernel_changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "kernel/ changed between $prev_tag and $CURRENT_TAG."
+            echo "kernel/ changed between $prev_tag and $current_tag."
             echo "kernel_changed=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -69,11 +88,17 @@ jobs:
 
       - name: Build kernel binary
         if: steps.change_check.outputs.kernel_changed == 'true'
-        run: make all CROSS_COMPILE= KERNEL_VERSION=${{ github.event.release.tag_name }}
+        run: make all CROSS_COMPILE= KERNEL_VERSION=${{ steps.change_check.outputs.current_tag }}
 
       - name: Build bootable ISO
         if: steps.change_check.outputs.kernel_changed == 'true'
-        run: make iso CROSS_COMPILE= KERNEL_VERSION=${{ github.event.release.tag_name }}
+        run: make iso CROSS_COMPILE= KERNEL_VERSION=${{ steps.change_check.outputs.current_tag }}
+
+      - name: Bind upload to target tag
+        if: steps.change_check.outputs.kernel_changed == 'true'
+        id: release_ref
+        run: |
+          echo "tag=${{ steps.change_check.outputs.current_tag }}" >> "$GITHUB_OUTPUT"
 
       - name: Generate checksums
         if: steps.change_check.outputs.kernel_changed == 'true'
@@ -86,6 +111,7 @@ jobs:
         if: steps.change_check.outputs.kernel_changed == 'true'
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.release_ref.outputs.tag }}
           files: |
             kernel/build/kernel.bin
             kernel/build/kernel.elf
