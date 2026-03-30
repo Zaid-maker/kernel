@@ -4,6 +4,17 @@ on:
   release:
     types:
       - published
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag to rebuild/upload assets for (defaults to latest tag)"
+        required: false
+        type: string
+      force_rebuild:
+        description: "Force rebuild/upload even if kernel/ appears unchanged"
+        required: false
+        default: false
+        type: boolean
   workflow_run:
     workflows:
       - Auto Tag And Release
@@ -34,8 +45,13 @@ jobs:
         run: |
           set -e
 
+          manual_tag="${{ github.event.inputs.tag_name || '' }}"
+          force_rebuild="${{ github.event.inputs.force_rebuild || 'false' }}"
+
           if [ "${{ github.event_name }}" = "release" ]; then
             current_tag="${{ github.event.release.tag_name }}"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$manual_tag" ]; then
+            current_tag="$manual_tag"
           else
             current_tag="$(git tag --sort=-creatordate | head -n 1 || true)"
           fi
@@ -47,9 +63,20 @@ jobs:
             exit 0
           fi
 
+          if ! git rev-parse "refs/tags/$current_tag" >/dev/null 2>&1; then
+            echo "Tag not found: $current_tag"
+            exit 1
+          fi
+
           echo "current_tag=$current_tag" >> "$GITHUB_OUTPUT"
 
           prev_tag="$(git tag --sort=-creatordate | grep -Fxv "$current_tag" | head -n 1 || true)"
+
+          if [ "$force_rebuild" = "true" ]; then
+            echo "force_rebuild=true requested; treating as changed."
+            echo "kernel_changed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           if [ -z "$prev_tag" ]; then
             echo "No previous tag found; treating as changed."
