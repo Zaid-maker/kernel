@@ -35,6 +35,14 @@ struct heap_trace_record {
     uint32_t size;
 };
 
+struct heap_integrity_report {
+    uint32_t blocks_scanned;
+    uint32_t corrupted_headers;
+    uint32_t split_alignment_issues;
+    uint32_t adjacent_unmerged_free_pairs;
+    uint32_t next_pointer_regressions;
+};
+
 void heap_initialize(void);
 void* kmalloc(uint32_t size);
 void kfree(void* ptr);
@@ -43,5 +51,6 @@ void heap_get_diag_counters(struct heap_diag_counters* out);
 uint32_t heap_trace_snapshot(struct heap_trace_record* out_records, uint32_t max_records);
 const uint32_t* heap_hist_bucket_limits(void);
 uint32_t heap_hist_bucket_count(void);
+int heap_check_integrity(struct heap_integrity_report* out_report);
 
 #endif

@@ -128,6 +128,7 @@ static void shell_print_help(void) {
     kprintln(" - memmap");
     kprintln(" - pmm");
     kprintln(" - heap");
+    kprintln(" - heapcheck");
     kprintln(" - heapfrag");
     kprintln(" - heapstress [rounds]");
     kprintln(" - heaphist");
@@ -258,6 +259,28 @@ static void shell_print_heap_fragmentation(void) {
     terminal_write_char('.');
     kprint_dec(external_frag_permille % 10u);
     kprintln("%");
+}
+
+static void shell_print_heap_integrity(void) {
+    struct heap_integrity_report report;
+    const int ok = heap_check_integrity(&report);
+
+    char heap_line_fallback[HEAP_STATS_BUFFER_SIZE];
+    char* line = g_heap_stats_buffer != 0 ? g_heap_stats_buffer : heap_line_fallback;
+
+    kprintln("Heap integrity:");
+    stats_format_label_text(line, HEAP_STATS_BUFFER_SIZE, " status      : ", ok ? "OK" : "FAIL");
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " scanned     : ", report.blocks_scanned);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " bad headers : ", report.corrupted_headers);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " bad align   : ", report.split_alignment_issues);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " unmerged adj: ", report.adjacent_unmerged_free_pairs);
+    kprintln(line);
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " bad next ptr: ", report.next_pointer_regressions);
+    kprintln(line);
 }
 
 static void shell_run_heap_stress(uint32_t rounds) {
@@ -557,6 +580,11 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "heapcheck")) {
+        shell_print_heap_integrity();
+        return;
+    }
+
     if (str_equal(cmd, "heapfrag")) {
         shell_print_heap_fragmentation();
         return;
@@ -712,7 +740,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     if (!keyboard_heap_queue_ok) {
         kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
     }
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history):");
 
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {

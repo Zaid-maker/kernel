@@ -28,6 +28,53 @@ static uint32_t block_overhead(void) {
     return (uint32_t)sizeof(struct heap_block);
 }
 
+static void heap_integrity_report_reset(struct heap_integrity_report* report) {
+    report->blocks_scanned = 0u;
+    report->corrupted_headers = 0u;
+    report->split_alignment_issues = 0u;
+    report->adjacent_unmerged_free_pairs = 0u;
+    report->next_pointer_regressions = 0u;
+}
+
+static int heap_check_integrity_internal(struct heap_integrity_report* report) {
+    struct heap_integrity_report local;
+    struct heap_integrity_report* out = report != 0 ? report : &local;
+    heap_integrity_report_reset(out);
+
+    struct heap_block* cur = g_heap_head;
+    while (cur != 0) {
+        ++out->blocks_scanned;
+
+        if (cur->magic != HEAP_MAGIC) {
+            ++out->corrupted_headers;
+            break;
+        }
+
+        if ((cur->size & (HEAP_ALIGN - 1u)) != 0u) {
+            ++out->split_alignment_issues;
+        }
+
+        if (cur->next != 0) {
+            if ((uintptr_t)cur->next <= (uintptr_t)cur) {
+                ++out->next_pointer_regressions;
+                break;
+            }
+
+            uintptr_t cur_end = (uintptr_t)cur + block_overhead() + cur->size;
+            if (cur->free && cur_end == (uintptr_t)cur->next && cur->next->free) {
+                ++out->adjacent_unmerged_free_pairs;
+            }
+        }
+
+        cur = cur->next;
+    }
+
+    return out->corrupted_headers == 0u
+        && out->split_alignment_issues == 0u
+        && out->adjacent_unmerged_free_pairs == 0u
+        && out->next_pointer_regressions == 0u;
+}
+
 static void append_block(struct heap_block* block) {
     block->next = (struct heap_block*)0;
 
@@ -81,6 +128,7 @@ static int heap_grow(void) {
     }
 
     merge_free_neighbors();
+    (void)heap_check_integrity_internal((struct heap_integrity_report*)0);
     return 1;
 }
 
@@ -115,6 +163,7 @@ void* kmalloc(uint32_t size) {
                 cur->free = 0;
                 void* out = (void*)((uintptr_t)cur + block_overhead());
                 heap_diag_record_alloc((uint32_t)(uintptr_t)out, cur->size);
+                (void)heap_check_integrity_internal((struct heap_integrity_report*)0);
                 return out;
             }
             cur = cur->next;
@@ -146,6 +195,7 @@ void kfree(void* ptr) {
     heap_diag_record_free((uint32_t)(uintptr_t)ptr, block->size);
     block->free = 1;
     merge_free_neighbors();
+    (void)heap_check_integrity_internal((struct heap_integrity_report*)0);
 }
 
 void heap_get_diag_counters(struct heap_diag_counters* out) {
@@ -162,6 +212,10 @@ const uint32_t* heap_hist_bucket_limits(void) {
 
 uint32_t heap_hist_bucket_count(void) {
     return heap_diag_hist_bucket_count();
+}
+
+int heap_check_integrity(struct heap_integrity_report* out_report) {
+    return heap_check_integrity_internal(out_report);
 }
 
 struct heap_stats heap_get_stats(void) {
