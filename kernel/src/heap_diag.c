@@ -17,7 +17,7 @@ static struct heap_diag_counters g_diag;
 static struct heap_trace_slot g_trace_slots[HEAP_TRACE_MAX_RECORDS];
 
 static uint32_t bucket_index_for_size(uint32_t size) {
-    for (uint32_t i = 0; i < HEAP_HIST_BUCKETS; ++i) {
+    for (uint32_t i = 0; i < HEAP_HIST_LAST_BUCKET; ++i) {
         if (size <= g_hist_bucket_limits[i]) {
             return i;
         }
