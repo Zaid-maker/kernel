@@ -1,0 +1,98 @@
+name: Auto Tag And Release
+
+"on":
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - kernel/VERSION
+      - .github/workflows/auto-tag-release.yml
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Validate workflow without creating tag/release"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read and validate version
+        id: version
+        shell: bash
+        run: |
+          set -e
+          version="$(tr -d '[:space:]' < kernel/VERSION)"
+          if [[ -z "$version" ]]; then
+            echo "kernel/VERSION is empty"
+            exit 1
+          fi
+
+          if [[ ! "$version" =~ ^v0\.0\.[0-9]{8}(\.[0-9]+)?$ ]]; then
+            echo "Invalid version format in kernel/VERSION: $version"
+            echo "Expected format: v0.0.YYYYMMDD or v0.0.YYYYMMDD.N"
+            exit 1
+          fi
+
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check if tag already exists
+        id: tag_check
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          set -e
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve run mode
+        id: mode
+        shell: bash
+        run: |
+          set -e
+          dry_run=false
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.dry_run || 'false' }}" == "true" ]]; then
+            dry_run=true
+          fi
+          echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
+
+      - name: Dry run summary
+        if: steps.mode.outputs.dry_run == 'true'
+        run: |
+          echo "Dry run enabled."
+          echo "Validated version: ${{ steps.version.outputs.value }}"
+          echo "Tag already exists: ${{ steps.tag_check.outputs.exists }}"
+
+      - name: Skip if release already exists
+        if: steps.tag_check.outputs.exists == 'true'
+        run: echo "Tag and release already exist for ${{ steps.version.outputs.value }}."
+
+      - name: Create tag and GitHub release
+        if: steps.tag_check.outputs.exists != 'true' && steps.mode.outputs.dry_run != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.value }}
+          name: Project SigmaBoot ${{ steps.version.outputs.value }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+      - name: Skip create in dry run mode
+        if: steps.tag_check.outputs.exists != 'true' && steps.mode.outputs.dry_run == 'true'
+        run: |
+          echo "Dry run mode: release creation was intentionally skipped."
