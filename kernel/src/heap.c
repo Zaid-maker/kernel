@@ -143,6 +143,8 @@ struct heap_stats heap_get_stats(void) {
     stats.free_bytes = 0u;
     stats.block_count = 0u;
     stats.free_blocks = 0u;
+    stats.largest_free_block = 0u;
+    stats.smallest_free_block = 0u;
 
     struct heap_block* cur = g_heap_head;
     while (cur != 0) {
@@ -152,6 +154,12 @@ struct heap_stats heap_get_stats(void) {
             if (cur->free) {
                 ++stats.free_blocks;
                 stats.free_bytes += cur->size;
+                if (cur->size > stats.largest_free_block) {
+                    stats.largest_free_block = cur->size;
+                }
+                if (stats.smallest_free_block == 0u || cur->size < stats.smallest_free_block) {
+                    stats.smallest_free_block = cur->size;
+                }
             } else {
                 stats.used_bytes += cur->size;
             }

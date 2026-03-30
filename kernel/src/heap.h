@@ -9,6 +9,8 @@ struct heap_stats {
     uint32_t free_bytes;
     uint32_t block_count;
     uint32_t free_blocks;
+    uint32_t largest_free_block;
+    uint32_t smallest_free_block;
 };
 
 void heap_initialize(void);

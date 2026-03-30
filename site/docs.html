@@ -49,7 +49,7 @@
         </article>
         <article class="doc-card">
           <h3>Kernel Core</h3>
-          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, shell command dispatch, memmap rendering, PMM/heap stats, and dynamic shell buffering via shared formatting utilities.</p>
+          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, shell command dispatch, memmap rendering, PMM/heap diagnostics (including stress and fragmentation views), and dynamic shell buffering via shared formatting utilities.</p>
         </article>
         <article class="doc-card">
           <h3>Display</h3>
@@ -106,7 +106,7 @@
 
           <rect x="255" y="400" width="470" height="80" rx="10" class="d-box d-user" />
           <text x="275" y="433" class="d-title">User Interaction</text>
-          <text x="275" y="457" class="d-text">Commands: help, clear, version, locks, uptime, memmap</text>
+          <text x="275" y="457" class="d-text">Commands: help, clear, version, locks, uptime, memmap, heapfrag, heapstress</text>
 
           <line x1="320" y1="115" x2="360" y2="115" class="d-arrow" marker-end="url(#arrow)" />
           <line x1="620" y1="115" x2="660" y2="115" class="d-arrow" marker-end="url(#arrow)" />
@@ -299,7 +299,7 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
         </article>
         <article class="doc-card">
           <h3>What can I try now?</h3>
-          <p>Boot in QEMU, run shell commands, inspect uptime and lock states, and use the <span class="mono">memmap</span> command.</p>
+          <p>Boot in QEMU, run shell commands, inspect uptime and lock states, and try <span class="mono">memmap</span>, <span class="mono">heapfrag</span>, and <span class="mono">heapstress</span>.</p>
         </article>
         <article class="doc-card">
           <h3>How are releases versioned?</h3>

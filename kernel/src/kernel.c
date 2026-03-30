@@ -18,6 +18,9 @@ enum {
     SHELL_INPUT_INITIAL = 128,
     SHELL_INPUT_MAX = 1024,
     SHELL_HISTORY_SIZE = 16,
+    HEAP_STRESS_SLOTS = 64,
+    HEAP_STRESS_DEFAULT_ROUNDS = 256,
+    HEAP_STRESS_MAX_ROUNDS = 8192,
     STATUS_UPTIME_BUFFER_SIZE = 24,
     MEMMAP_LINE_BUFFER_SIZE = 160,
     PMM_STATS_BUFFER_SIZE = 160,
@@ -44,6 +47,52 @@ static int str_equal(const char* a, const char* b) {
     }
 
     return a[i] == '\0' && b[i] == '\0';
+}
+
+static int str_starts_with(const char* text, const char* prefix) {
+    uint32_t i = 0;
+    while (prefix[i] != '\0') {
+        if (text[i] != prefix[i]) {
+            return 0;
+        }
+        ++i;
+    }
+    return 1;
+}
+
+static const char* skip_spaces(const char* text) {
+    while (*text == ' ') {
+        ++text;
+    }
+    return text;
+}
+
+static int parse_u32_strict(const char* text, uint32_t* out_value) {
+    const char* p = skip_spaces(text);
+    uint32_t value = 0u;
+    int have_digit = 0;
+
+    while (*p >= '0' && *p <= '9') {
+        const uint32_t digit = (uint32_t)(*p - '0');
+        if (value > 429496729u || (value == 429496729u && digit > 5u)) {
+            return 0;
+        }
+        value = value * 10u + digit;
+        have_digit = 1;
+        ++p;
+    }
+
+    if (!have_digit) {
+        return 0;
+    }
+
+    p = skip_spaces(p);
+    if (*p != '\0') {
+        return 0;
+    }
+
+    *out_value = value;
+    return 1;
 }
 
 static void print_uptime_line(void) {
@@ -76,6 +125,8 @@ static void shell_print_help(void) {
     kprintln(" - memmap");
     kprintln(" - pmm");
     kprintln(" - heap");
+    kprintln(" - heapfrag");
+    kprintln(" - heapstress [rounds]");
     kprintln(" - history");
 }
 
@@ -166,6 +217,127 @@ static void shell_print_heap(void) {
 
     stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " free blocks : ", stats.free_blocks);
     kprintln(line);
+}
+
+static void shell_print_heap_fragmentation(void) {
+    const struct heap_stats stats = heap_get_stats();
+    const uint32_t alloc_blocks = stats.block_count - stats.free_blocks;
+    uint32_t external_frag_permille = 0u;
+
+    if (stats.free_bytes > 0u && stats.largest_free_block < stats.free_bytes) {
+        external_frag_permille = ((stats.free_bytes - stats.largest_free_block) * 1000u) / stats.free_bytes;
+    }
+
+    char heap_line_fallback[HEAP_STATS_BUFFER_SIZE];
+    char* line = g_heap_stats_buffer != 0 ? g_heap_stats_buffer : heap_line_fallback;
+
+    kprintln("Heap fragmentation:");
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " alloc blocks : ", alloc_blocks);
+    kprintln(line);
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " free blocks  : ", stats.free_blocks);
+    kprintln(line);
+
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " free bytes   : ", stats.free_bytes);
+    kprintln(line);
+
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " largest free : ", stats.largest_free_block);
+    kprintln(line);
+
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " smallest free: ", stats.smallest_free_block);
+    kprintln(line);
+
+    kprint(" external frag: ");
+    kprint_dec(external_frag_permille / 10u);
+    terminal_write_char('.');
+    kprint_dec(external_frag_permille % 10u);
+    kprintln("%");
+}
+
+static void shell_run_heap_stress(uint32_t rounds) {
+    void* slots[HEAP_STRESS_SLOTS];
+    for (uint32_t i = 0; i < HEAP_STRESS_SLOTS; ++i) {
+        slots[i] = (void*)0;
+    }
+
+    uint32_t alloc_attempts = 0u;
+    uint32_t alloc_success = 0u;
+    uint32_t alloc_fail = 0u;
+    uint32_t free_ops = 0u;
+    const struct heap_stats before = heap_get_stats();
+    uint32_t peak_used_bytes = before.used_bytes;
+
+    for (uint32_t round = 0; round < rounds; ++round) {
+        const uint32_t index = (round * 37u + 11u) % HEAP_STRESS_SLOTS;
+
+        if (slots[index] != 0 && ((round & 1u) == 0u || (round % 5u) == 0u)) {
+            kfree(slots[index]);
+            slots[index] = (void*)0;
+            ++free_ops;
+        } else if (slots[index] == 0) {
+            const uint32_t size = 16u + ((round * 53u) % 1024u);
+            ++alloc_attempts;
+            void* ptr = kmalloc(size);
+            if (ptr == 0) {
+                ++alloc_fail;
+            } else {
+                uint8_t* bytes = (uint8_t*)ptr;
+                bytes[0] = (uint8_t)(round & 0xFFu);
+                bytes[size - 1u] = (uint8_t)((round >> 1u) & 0xFFu);
+                slots[index] = ptr;
+                ++alloc_success;
+            }
+        }
+
+        const struct heap_stats mid = heap_get_stats();
+        if (mid.used_bytes > peak_used_bytes) {
+            peak_used_bytes = mid.used_bytes;
+        }
+    }
+
+    for (uint32_t i = 0; i < HEAP_STRESS_SLOTS; ++i) {
+        if (slots[i] != 0) {
+            kfree(slots[i]);
+            slots[i] = (void*)0;
+            ++free_ops;
+        }
+    }
+
+    const struct heap_stats after = heap_get_stats();
+
+    char heap_line_fallback[HEAP_STATS_BUFFER_SIZE];
+    char* line = g_heap_stats_buffer != 0 ? g_heap_stats_buffer : heap_line_fallback;
+
+    kprintln("Heap allocator stress:");
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " rounds       : ", rounds);
+    kprintln(line);
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " alloc tries  : ", alloc_attempts);
+    kprintln(line);
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " alloc ok     : ", alloc_success);
+    kprintln(line);
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " alloc failed : ", alloc_fail);
+    kprintln(line);
+
+    stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " frees        : ", free_ops);
+    kprintln(line);
+
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " peak used    : ", peak_used_bytes);
+    kprintln(line);
+
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " used before  : ", before.used_bytes);
+    kprintln(line);
+
+    stats_format_label_hex32(line, HEAP_STATS_BUFFER_SIZE, " used after   : ", after.used_bytes);
+    kprintln(line);
+
+    if (after.used_bytes != before.used_bytes) {
+        kprintln("Warning: heap stress left different used-byte count.");
+    }
 }
 
 static void shell_print_pmm(void) {
@@ -305,6 +477,31 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "heapfrag")) {
+        shell_print_heap_fragmentation();
+        return;
+    }
+
+    if (str_equal(cmd, "heapstress")) {
+        shell_run_heap_stress(HEAP_STRESS_DEFAULT_ROUNDS);
+        return;
+    }
+
+    if (str_starts_with(cmd, "heapstress ")) {
+        uint32_t rounds = 0u;
+        if (!parse_u32_strict(cmd + 10, &rounds) || rounds == 0u) {
+            kprintln("Usage: heapstress [rounds>0]");
+            return;
+        }
+
+        if (rounds > HEAP_STRESS_MAX_ROUNDS) {
+            rounds = HEAP_STRESS_MAX_ROUNDS;
+        }
+
+        shell_run_heap_stress(rounds);
+        return;
+    }
+
     if (str_equal(cmd, "history")) {
         shell_print_history();
         return;
@@ -410,7 +607,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     if (!keyboard_heap_queue_ok) {
         kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
     }
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, history):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapfrag, heapstress [rounds], history):");
 
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {
