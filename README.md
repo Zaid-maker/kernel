@@ -71,7 +71,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260331`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260331.1`
 
 ## Project Website
 
@@ -94,6 +94,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - `kernel/src/multiboot.h`: Multiboot data structures used for boot-time memory map parsing.
 - `kernel/src/pmm.c`, `kernel/src/pmm.h`: Physical memory manager bitmap and frame stats APIs.
 - `kernel/src/heap.c`, `kernel/src/heap.h`: Heap allocator (`kmalloc`/`kfree`) with integrity checks, fragmentation stats, live histogram telemetry, and leak-trace snapshots.
+- `kernel/src/heap_diag.c`, `kernel/src/heap_diag.h`: Heap diagnostics telemetry backend (histograms, trace snapshots, counters).
 - `kernel/src/isr.s`: interrupt service routine stubs.
 - `kernel/linker.ld`: Links the kernel at 1 MiB.
 - `kernel/grub/grub.cfg`: GRUB menu entry.
@@ -133,6 +134,7 @@ make -C kernel test
 ```
 
 This runs host-side unit tests for shared formatting helpers (`src/sbuf.c`) in parallel with kernel feature work.
+It also runs heap diagnostics tests (`heap_diag_test`) and corruption-injection integrity tests (`heap_integrity_test`).
 Both CI (`build-kernel.yml`) and release (`release-kernel.yml`) pipelines run this test gate before build/release assets.
 
 ## Run Coverage
@@ -141,7 +143,7 @@ Both CI (`build-kernel.yml`) and release (`release-kernel.yml`) pipelines run th
 make -C kernel coverage
 ```
 
-This generates an LCOV report at `kernel/build/coverage/lcov.info` for the host-side formatter test suite.
+This generates an LCOV report at `kernel/build/coverage/lcov.info` for host-side formatter and heap diagnostics/integrity test suites.
 
 ## Codecov Bundle Analysis (Ready)
 
@@ -164,6 +166,7 @@ This generates an LCOV report at `kernel/build/coverage/lcov.info` for the host-
 - Run `heapstress` (and `heapstress 512`) and verify stress summary counters print without hanging.
 - Run `heaphist` and verify live block/byte buckets are printed.
 - Run `heapleaks` (and `heapleaks 32`) and verify active allocation trace rows are printed.
+- Run `make -C kernel test` and verify `heap_diag_test` and `heap_integrity_test` pass.
 - Status bar continues updating lock states and uptime while typing commands.
 - Keyboard input remains functional if heap queue allocation fails (fallback queue path).
 - Decimal printing remains functional if print-buffer heap allocation fails (fallback path).
