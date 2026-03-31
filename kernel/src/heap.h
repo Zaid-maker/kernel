@@ -53,4 +53,12 @@ const uint32_t* heap_hist_bucket_limits(void);
 uint32_t heap_hist_bucket_count(void);
 int heap_check_integrity(struct heap_integrity_report* out_report);
 
+#ifdef HEAP_ENABLE_TEST_HOOKS
+int heap_debug_seed_chain(const uint32_t* sizes, const uint8_t* free_flags, uint32_t count);
+void heap_debug_corrupt_magic(uint32_t index);
+void heap_debug_misalign_size(uint32_t index);
+void heap_debug_make_next_regression(uint32_t index);
+void heap_debug_clear_chain(void);
+#endif
+
 #endif
