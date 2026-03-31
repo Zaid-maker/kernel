@@ -86,7 +86,7 @@
 
           <rect x="360" y="60" width="260" height="110" rx="10" class="d-box d-core" />
           <text x="380" y="95" class="d-title">Kernel Core</text>
-          <text x="380" y="122" class="d-text">kernel_main, shell, memmap</text>
+          <text x="380" y="122" class="d-text">kernel_main, shell, memmap, heapcheck</text>
           <text x="380" y="145" class="d-text">version + command dispatch</text>
 
           <rect x="660" y="60" width="260" height="110" rx="10" class="d-box d-display" />
@@ -213,7 +213,8 @@
       <div class="split">
         <div class="code-box">
           <h3>Local Build</h3>
-          <pre><code>make -C kernel all CROSS_COMPILE=
+          <pre><code>make -C kernel test
+make -C kernel all CROSS_COMPILE=
 make -C kernel iso CROSS_COMPILE=
 qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
         </div>
@@ -272,7 +273,11 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
           </tr>
           <tr>
             <td class="mono">kernel/src/heap.c</td>
-            <td>Kernel heap allocator (`kmalloc`/`kfree`) with fragmentation stats, size histogram telemetry, and leak-trace reporting</td>
+            <td>Kernel heap allocator (`kmalloc`/`kfree`) with integrity checks, fragmentation stats, size histogram telemetry, and leak-trace reporting</td>
+          </tr>
+          <tr>
+            <td class="mono">kernel/src/heap_diag.c</td>
+            <td>Heap diagnostics telemetry backend for counters, histograms, and allocation trace snapshots</td>
           </tr>
           <tr>
             <td class="mono">kernel/src/stats_util.c</td>

@@ -20,6 +20,17 @@ struct heap_block {
 
 static struct heap_block* g_heap_head = (struct heap_block*)0;
 
+#ifdef HEAP_ENABLE_TEST_HOOKS
+enum {
+    HEAP_TEST_MAX_BLOCKS = 32u,
+    HEAP_TEST_ARENA_SIZE = 16384u
+};
+
+static uint8_t g_heap_test_arena[HEAP_TEST_ARENA_SIZE];
+static struct heap_block* g_heap_test_blocks[HEAP_TEST_MAX_BLOCKS];
+static uint32_t g_heap_test_block_count = 0u;
+#endif
+
 static uint32_t align_up(uint32_t value, uint32_t align) {
     return (value + align - 1u) & ~(align - 1u);
 }
@@ -217,6 +228,76 @@ uint32_t heap_hist_bucket_count(void) {
 int heap_check_integrity(struct heap_integrity_report* out_report) {
     return heap_check_integrity_internal(out_report);
 }
+
+#ifdef HEAP_ENABLE_TEST_HOOKS
+int heap_debug_seed_chain(const uint32_t* sizes, const uint8_t* free_flags, uint32_t count) {
+    if (sizes == 0 || free_flags == 0 || count == 0u || count > HEAP_TEST_MAX_BLOCKS) {
+        return 0;
+    }
+
+    g_heap_head = (struct heap_block*)0;
+    g_heap_test_block_count = 0u;
+
+    uintptr_t cursor = (uintptr_t)&g_heap_test_arena[0];
+    uintptr_t arena_end = (uintptr_t)&g_heap_test_arena[HEAP_TEST_ARENA_SIZE];
+
+    struct heap_block* prev = (struct heap_block*)0;
+    for (uint32_t i = 0; i < count; ++i) {
+        struct heap_block* block = (struct heap_block*)cursor;
+        uintptr_t payload_start = cursor + block_overhead();
+        uintptr_t next_cursor = payload_start + sizes[i];
+        if (next_cursor > arena_end) {
+            g_heap_head = (struct heap_block*)0;
+            g_heap_test_block_count = 0u;
+            return 0;
+        }
+
+        block->magic = HEAP_MAGIC;
+        block->size = sizes[i];
+        block->free = free_flags[i] ? 1u : 0u;
+        block->next = (struct heap_block*)0;
+
+        if (prev == 0) {
+            g_heap_head = block;
+        } else {
+            prev->next = block;
+        }
+
+        g_heap_test_blocks[i] = block;
+        prev = block;
+        cursor = next_cursor;
+        g_heap_test_block_count = i + 1u;
+    }
+
+    return 1;
+}
+
+void heap_debug_corrupt_magic(uint32_t index) {
+    if (index >= g_heap_test_block_count) {
+        return;
+    }
+    g_heap_test_blocks[index]->magic = 0u;
+}
+
+void heap_debug_misalign_size(uint32_t index) {
+    if (index >= g_heap_test_block_count) {
+        return;
+    }
+    g_heap_test_blocks[index]->size |= 1u;
+}
+
+void heap_debug_make_next_regression(uint32_t index) {
+    if (index == 0u || index >= g_heap_test_block_count) {
+        return;
+    }
+    g_heap_test_blocks[index]->next = g_heap_test_blocks[index - 1u];
+}
+
+void heap_debug_clear_chain(void) {
+    g_heap_head = (struct heap_block*)0;
+    g_heap_test_block_count = 0u;
+}
+#endif
 
 struct heap_stats heap_get_stats(void) {
     struct heap_stats stats;
