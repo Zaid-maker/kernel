@@ -1,0 +1,686 @@
+un make test CROSS_COMPILE=
+gcc -std=c11 -O2 -Wall -Wextra tests/sbuf_test.c src/sbuf.c -o build/sbuf_test
+gcc -std=c11 -O2 -Wall -Wextra tests/sbuf_integration_test.c src/sbuf.c -o build/sbuf_integration_test
+gcc -std=c11 -O2 -Wall -Wextra tests/sbuf_boundary_test.c src/sbuf.c -o build/sbuf_boundary_test
+gcc -std=c11 -O2 -Wall -Wextra tests/stats_util_test.c src/sbuf.c src/stats_util.c -o build/stats_util_test
+gcc -std=c11 -O2 -Wall -Wextra tests/heap_diag_test.c src/heap_diag.c -o build/heap_diag_test
+gcc -std=c11 -O2 -Wall -Wextra tests/heap_runtime_test.c src/heap.c src/heap_diag.c tests/pmm_stub.c -o build/heap_runtime_test
+gcc -std=c11 -O2 -Wall -Wextra -DHEAP_ENABLE_TEST_HOOKS tests/heap_integrity_test.c src/heap.c src/heap_diag.c tests/pmm_stub.c -o build/heap_integrity_test
+build/sbuf_test
+PASS: append str/char/dec
+PASS: len tracking basic
+PASS: append hex32
+PASS: append hex64
+PASS: capacity guard
+PASS: len unchanged when full
+PASS: decimal zero
+PASS: len decimal zero
+PASS: cap one remains empty
+PASS: len cap one
+PASS: string truncation
+PASS: len truncation
+PASS: hex append after prefix
+PASS: len hex with prefix
+build/sbuf_integration_test
+PASS: pmm line compose
+PASS: memmap line compose
+PASS: exception line compose
+PASS: deterministic mixed-append model match
+PASS: len matches model
+PASS: len stays in bounds
+PASS: line null terminated
+build/sbuf_boundary_test
+PASS: no growth when full (append_str)
+PASS: len stable when full
+PASS: sentinel preserved append_str
+PASS: hex append truncation behavior
+PASS: len capped for hex append
+PASS: sentinel preserved hex
+PASS: dec append truncation behavior
+PASS: len capped for dec append
+PASS: sentinel preserved dec
+PASS: char append exact boundary
+PASS: len exact boundary
+PASS: null at len boundary
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random len in bounds
+PASS: random null at len
+PASS: random sentinel+0 preserved
+PASS: random sentinel+1 preserved
+PASS: random sentinel+2 preserved
+build/stats_util_test
+PASS: label text
+PASS: label dec
+PASS: label hex32
+PASS: label hex64
+PASS: vector line
+PASS: memmap entry line
+build/heap_diag_test
+PASS: initial alloc calls
+PASS: initial free calls
+PASS: initial live allocations
+PASS: initial peak live
+PASS: bucket count
+PASS: bucket[0]
+PASS: bucket[6]
+PASS: alloc calls after 3
+PASS: live allocations after 3
+PASS: peak live after 3
+PASS: hist blocks <=16
+PASS: hist blocks <=32
+PASS: hist blocks >1024
+PASS: hist bytes <=16
+PASS: hist bytes <=32
+PASS: hist bytes >1024
+PASS: snapshot count after 3
+PASS: free calls after one free
+PASS: live allocations after one free
+PASS: hist blocks <=32 after free
+PASS: hist bytes <=32 after free
+PASS: snapshot count after free
+PASS: failed alloc count
+PASS: invalid free count
+PASS: overflow alloc calls
+PASS: overflow live allocations
+PASS: overflow trace events
+PASS: overflow snapshot clipped
+build/heap_runtime_test
+make: *** [Makefile:77: test] Segmentation fault (core dumped)
+Error: Process completed with exit code 2.

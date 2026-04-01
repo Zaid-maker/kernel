@@ -31,6 +31,14 @@ int main(void) {
     heap_initialize();
 
     {
+        const struct pmm_stats pmm_stats = pmm_get_stats();
+        if (pmm_stats.total_frames == 0u) {
+            printf("SKIP: runtime heap test (no 32-bit-safe PMM stub frames on this host)\n");
+            return 0;
+        }
+    }
+
+    {
         pmm_initialize(0u, (const struct multiboot_info*)0);
         heap_initialize();
 
