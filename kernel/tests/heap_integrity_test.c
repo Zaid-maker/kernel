@@ -1,7 +1,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifndef HEAP_ENABLE_TEST_HOOKS
 #define HEAP_ENABLE_TEST_HOOKS
+#endif
 #include "../src/heap.h"
 
 static int expect_u32(const char* name, uint32_t actual, uint32_t expected) {
