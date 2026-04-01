@@ -129,6 +129,7 @@ static void shell_print_help(void) {
     kprintln(" - pmm");
     kprintln(" - heap");
     kprintln(" - heapcheck");
+    kprintln(" - heaptriage");
     kprintln(" - heapfrag");
     kprintln(" - heapstress [rounds]");
     kprintln(" - heaphist");
@@ -280,6 +281,30 @@ static void shell_print_heap_integrity(void) {
     stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " unmerged adj: ", report.adjacent_unmerged_free_pairs);
     kprintln(line);
     stats_format_label_dec(line, HEAP_STATS_BUFFER_SIZE, " bad next ptr: ", report.next_pointer_regressions);
+    kprintln(line);
+}
+
+static void shell_print_heap_triage(void) {
+    struct heap_integrity_report report;
+    const int ok = heap_check_integrity(&report);
+
+    char heap_line_fallback[HEAP_STATS_BUFFER_SIZE];
+    char* line = g_heap_stats_buffer != 0 ? g_heap_stats_buffer : heap_line_fallback;
+
+    sbuf_reset(line);
+    uint32_t len = 0u;
+    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, "Heap triage: ");
+    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, ok ? "OK" : "FAIL");
+    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " scanned=");
+    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.blocks_scanned);
+    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " bad=");
+    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.corrupted_headers);
+    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " align=");
+    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.split_alignment_issues);
+    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " unmerged=");
+    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.adjacent_unmerged_free_pairs);
+    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " next=");
+    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.next_pointer_regressions);
     kprintln(line);
 }
 
@@ -585,6 +610,11 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "heaptriage")) {
+        shell_print_heap_triage();
+        return;
+    }
+
     if (str_equal(cmd, "heapfrag")) {
         shell_print_heap_fragmentation();
         return;
@@ -740,7 +770,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     if (!keyboard_heap_queue_ok) {
         kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
     }
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heaptriage, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history):");
 
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {

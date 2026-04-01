@@ -49,7 +49,7 @@
         </article>
         <article class="doc-card">
           <h3>Kernel Core</h3>
-          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, shell command dispatch, memmap rendering, PMM/heap diagnostics (including integrity, stress, fragmentation, histogram, and leak-trace views), and dynamic shell buffering via shared formatting utilities.</p>
+          <p><span class="mono">src/kernel.c</span> initializes terminal, interrupt subsystem, lock-state UI updates, shell command dispatch, memmap rendering, PMM/heap diagnostics (including integrity, compact triage, stress, fragmentation, histogram, and leak-trace views), and dynamic shell buffering via shared formatting utilities.</p>
         </article>
         <article class="doc-card">
           <h3>Display</h3>
@@ -86,7 +86,7 @@
 
           <rect x="360" y="60" width="260" height="110" rx="10" class="d-box d-core" />
           <text x="380" y="95" class="d-title">Kernel Core</text>
-          <text x="380" y="122" class="d-text">kernel_main, shell, memmap, heapcheck</text>
+          <text x="380" y="122" class="d-text">kernel_main, shell, memmap, heapcheck, heaptriage</text>
           <text x="380" y="145" class="d-text">version + command dispatch</text>
 
           <rect x="660" y="60" width="260" height="110" rx="10" class="d-box d-display" />
@@ -106,7 +106,7 @@
 
           <rect x="255" y="400" width="470" height="80" rx="10" class="d-box d-user" />
           <text x="275" y="433" class="d-title">User Interaction</text>
-          <text x="275" y="457" class="d-text">Commands: help, clear, version, locks, uptime, memmap, heapcheck, heapfrag, heapstress, heaphist, heapleaks</text>
+          <text x="275" y="457" class="d-text">Commands: help, clear, version, locks, uptime, memmap, heapcheck, heaptriage, heapfrag, heapstress, heaphist, heapleaks</text>
 
           <line x1="320" y1="115" x2="360" y2="115" class="d-arrow" marker-end="url(#arrow)" />
           <line x1="620" y1="115" x2="660" y2="115" class="d-arrow" marker-end="url(#arrow)" />
@@ -304,7 +304,7 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
         </article>
         <article class="doc-card">
           <h3>What can I try now?</h3>
-          <p>Boot in QEMU, run shell commands, inspect uptime and lock states, and try <span class="mono">memmap</span>, <span class="mono">heapcheck</span>, <span class="mono">heapfrag</span>, <span class="mono">heapstress</span>, <span class="mono">heaphist</span>, and <span class="mono">heapleaks</span>.</p>
+          <p>Boot in QEMU, run shell commands, inspect uptime and lock states, and try <span class="mono">memmap</span>, <span class="mono">heapcheck</span>, <span class="mono">heaptriage</span>, <span class="mono">heapfrag</span>, <span class="mono">heapstress</span>, <span class="mono">heaphist</span>, and <span class="mono">heapleaks</span>.</p>
         </article>
         <article class="doc-card">
           <h3>How are releases versioned?</h3>
