@@ -66,7 +66,7 @@ test: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_integration_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_integration_test
 	$(HOST_CC) $(HOST_CFLAGS) tests/sbuf_boundary_test.c src/sbuf.c -o $(BUILD_DIR)/sbuf_boundary_test
 	$(HOST_CC) $(HOST_CFLAGS) tests/stats_util_test.c src/sbuf.c src/stats_util.c -o $(BUILD_DIR)/stats_util_test
-	$(HOST_CC) $(HOST_CFLAGS) tests/heap_diag_test.c src/heap_diag.c -o $(BUILD_DIR)/heap_diag_test
+	$(HOST_CC) $(HOST_CFLAGS) tests/heap_diag_test.c src/heap_diag.c src/sbuf.c -o $(BUILD_DIR)/heap_diag_test
 	$(HOST_CC) $(HOST_CFLAGS) tests/heap_runtime_test.c src/heap.c src/heap_diag.c tests/pmm_stub.c -o $(BUILD_DIR)/heap_runtime_test
 	$(HOST_CC) $(HOST_CFLAGS) -DHEAP_ENABLE_TEST_HOOKS tests/heap_integrity_test.c src/heap.c src/heap_diag.c tests/pmm_stub.c -o $(BUILD_DIR)/heap_integrity_test
 	$(BUILD_DIR)/sbuf_test
@@ -95,7 +95,7 @@ coverage: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_integration_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_integration_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_boundary_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_boundary_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/stats_util_test_cov.o $(BUILD_DIR)/sbuf_cov.o $(BUILD_DIR)/stats_util_cov.o -o $(BUILD_DIR)/stats_util_test_cov
-	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_diag_test_cov.o $(BUILD_DIR)/heap_diag_cov.o -o $(BUILD_DIR)/heap_diag_test_cov
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_diag_test_cov.o $(BUILD_DIR)/heap_diag_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/heap_diag_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_runtime_test_cov.o $(BUILD_DIR)/heap_cov.o $(BUILD_DIR)/heap_diag_cov.o $(BUILD_DIR)/pmm_stub_cov.o -o $(BUILD_DIR)/heap_runtime_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_integrity_test_cov.o $(BUILD_DIR)/heap_cov.o $(BUILD_DIR)/heap_diag_cov.o $(BUILD_DIR)/pmm_stub_cov.o -o $(BUILD_DIR)/heap_integrity_test_cov
 	lcov --zerocounters --directory $(BUILD_DIR)
