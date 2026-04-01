@@ -53,10 +53,10 @@ int main(void) {
         kfree(first);
         kfree(third);
 
-        struct heap_stats stats = heap_get_stats();
-        ok &= expect_true("merged free blocks", stats.free_blocks > 0u);
-        ok &= expect_true("largest free block present", stats.largest_free_block > 0u);
-        ok &= expect_true("free bytes present", stats.free_bytes > 0u);
+        struct heap_stats merged_stats = heap_get_stats();
+        ok &= expect_true("merged free blocks", merged_stats.free_blocks > 0u);
+        ok &= expect_true("largest free block present", merged_stats.largest_free_block > 0u);
+        ok &= expect_true("free bytes present", merged_stats.free_bytes > 0u);
     }
 
     {
