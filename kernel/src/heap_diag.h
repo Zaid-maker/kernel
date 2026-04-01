@@ -14,5 +14,6 @@ void heap_diag_get_counters(struct heap_diag_counters* out);
 uint32_t heap_diag_trace_snapshot(struct heap_trace_record* out_records, uint32_t max_records);
 const uint32_t* heap_diag_hist_bucket_limits(void);
 uint32_t heap_diag_hist_bucket_count(void);
+void heap_diag_format_triage_line(char* buffer, uint32_t cap, const struct heap_integrity_report* report, int ok);
 
 #endif

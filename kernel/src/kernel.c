@@ -291,20 +291,7 @@ static void shell_print_heap_triage(void) {
     char heap_line_fallback[HEAP_STATS_BUFFER_SIZE];
     char* line = g_heap_stats_buffer != 0 ? g_heap_stats_buffer : heap_line_fallback;
 
-    sbuf_reset(line);
-    uint32_t len = 0u;
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, "Heap triage: ");
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, ok ? "OK" : "FAIL");
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " scanned=");
-    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.blocks_scanned);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " bad=");
-    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.corrupted_headers);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " align=");
-    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.split_alignment_issues);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " unmerged=");
-    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.adjacent_unmerged_free_pairs);
-    sbuf_append_str(line, HEAP_STATS_BUFFER_SIZE, &len, " next=");
-    sbuf_append_dec_u32(line, HEAP_STATS_BUFFER_SIZE, &len, report.next_pointer_regressions);
+    heap_diag_format_triage_line(line, HEAP_STATS_BUFFER_SIZE, &report, ok);
     kprintln(line);
 }
 

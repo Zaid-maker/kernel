@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "sbuf.h"
+
 enum {
     HEAP_HIST_LAST_BUCKET = HEAP_HIST_BUCKETS - 1u
 };
@@ -139,4 +141,21 @@ const uint32_t* heap_diag_hist_bucket_limits(void) {
 
 uint32_t heap_diag_hist_bucket_count(void) {
     return HEAP_HIST_BUCKETS;
+}
+
+void heap_diag_format_triage_line(char* buffer, uint32_t cap, const struct heap_integrity_report* report, int ok) {
+    uint32_t len = 0u;
+    sbuf_reset(buffer);
+    sbuf_append_str(buffer, cap, &len, "Heap triage: ");
+    sbuf_append_str(buffer, cap, &len, ok ? "OK" : "FAIL");
+    sbuf_append_str(buffer, cap, &len, " scanned=");
+    sbuf_append_dec_u32(buffer, cap, &len, report != 0 ? report->blocks_scanned : 0u);
+    sbuf_append_str(buffer, cap, &len, " bad=");
+    sbuf_append_dec_u32(buffer, cap, &len, report != 0 ? report->corrupted_headers : 0u);
+    sbuf_append_str(buffer, cap, &len, " align=");
+    sbuf_append_dec_u32(buffer, cap, &len, report != 0 ? report->split_alignment_issues : 0u);
+    sbuf_append_str(buffer, cap, &len, " unmerged=");
+    sbuf_append_dec_u32(buffer, cap, &len, report != 0 ? report->adjacent_unmerged_free_pairs : 0u);
+    sbuf_append_str(buffer, cap, &len, " next=");
+    sbuf_append_dec_u32(buffer, cap, &len, report != 0 ? report->next_pointer_regressions : 0u);
 }
