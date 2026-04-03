@@ -144,6 +144,10 @@ uint32_t heap_diag_hist_bucket_count(void) {
 }
 
 void heap_diag_format_triage_line(char* buffer, uint32_t cap, const struct heap_integrity_report* report, int ok) {
+    if (buffer == 0 || cap == 0u) {
+        return;
+    }
+
     uint32_t len = 0u;
     sbuf_reset(buffer);
     sbuf_append_str(buffer, cap, &len, "Heap triage: ");
