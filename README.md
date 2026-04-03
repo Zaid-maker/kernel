@@ -145,6 +145,7 @@ make -C kernel coverage
 ```
 
 This generates an LCOV report at `kernel/build/coverage/lcov.info` for host-side formatter and heap diagnostics/integrity/runtime test suites.
+Current milestone: host-side coverage is at 100% for the tracked kernel utility and heap diagnostics paths.
 
 ## Codecov Bundle Analysis (Ready)
 

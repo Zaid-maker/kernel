@@ -285,7 +285,7 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
           </tr>
           <tr>
             <td class="mono">kernel/Makefile</td>
-            <td>Build and ISO generation rules</td>
+            <td>Build, host-side test, and coverage rules (including LCOV output)</td>
           </tr>
         </tbody>
       </table>
@@ -301,6 +301,10 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
         <article class="doc-card">
           <h3>Is it production ready?</h3>
           <p>No. It is alpha-stage experimental software intended for learning and iteration.</p>
+        </article>
+        <article class="doc-card">
+          <h3>How stable is test coverage?</h3>
+          <p>The host-side suite currently sits at a 100% coverage milestone for heap allocator and diagnostics utility paths tracked in CI.</p>
         </article>
         <article class="doc-card">
           <h3>What can I try now?</h3>
