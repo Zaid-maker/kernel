@@ -103,6 +103,13 @@ int main(void) {
         char line[128];
         heap_diag_format_triage_line(line, sizeof(line), &report, 0);
         ok &= expect_u32("triage line match", strcmp(line, "Heap triage: FAIL scanned=7 bad=1 align=2 unmerged=3 next=4") == 0 ? 1u : 0u, 1u);
+
+        char untouched[8] = "keep";
+        heap_diag_format_triage_line(untouched, 0u, &report, 1);
+        ok &= expect_u32("triage cap zero guard", strcmp(untouched, "keep") == 0 ? 1u : 0u, 1u);
+
+        heap_diag_format_triage_line(0, 64u, &report, 1);
+        ok &= expect_u32("triage null buffer guard", 1u, 1u);
     }
 
     {
