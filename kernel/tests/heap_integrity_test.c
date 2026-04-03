@@ -90,6 +90,12 @@ int main(void) {
         ok &= expect_u32("next regression count", report.next_pointer_regressions, 1u);
     }
 
+    {
+        uint32_t sizes[] = {20000u};
+        uint8_t frees[] = {1u};
+        ok &= expect_true("seed overflow rejected", !heap_debug_seed_chain(sizes, frees, 1u));
+    }
+
     heap_debug_clear_chain();
     return ok ? 0 : 1;
 }
