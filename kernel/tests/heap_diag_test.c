@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "../src/heap_diag.h"
 
@@ -89,6 +90,26 @@ int main(void) {
         heap_diag_get_counters(&diag);
         ok &= expect_u32("failed alloc count", diag.failed_alloc_calls, 1u);
         ok &= expect_u32("invalid free count", diag.invalid_free_calls, 1u);
+    }
+
+    {
+        struct heap_integrity_report report;
+        report.blocks_scanned = 7u;
+        report.corrupted_headers = 1u;
+        report.split_alignment_issues = 2u;
+        report.adjacent_unmerged_free_pairs = 3u;
+        report.next_pointer_regressions = 4u;
+
+        char line[128];
+        heap_diag_format_triage_line(line, sizeof(line), &report, 0);
+        ok &= expect_u32("triage line match", strcmp(line, "Heap triage: FAIL scanned=7 bad=1 align=2 unmerged=3 next=4") == 0 ? 1u : 0u, 1u);
+
+        char untouched[8] = "keep";
+        heap_diag_format_triage_line(untouched, 0u, &report, 1);
+        ok &= expect_u32("triage cap zero guard", strcmp(untouched, "keep") == 0 ? 1u : 0u, 1u);
+
+        heap_diag_format_triage_line(0, 64u, &report, 1);
+        ok &= expect_u32("triage null buffer guard", 1u, 1u);
     }
 
     {

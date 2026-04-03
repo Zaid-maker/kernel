@@ -42,6 +42,9 @@ int main(void) {
         pmm_initialize(0u, (const struct multiboot_info*)0);
         heap_initialize();
 
+        void* null_alloc = kmalloc(0u);
+        ok &= expect_true("zero-size allocation returns null", null_alloc == 0);
+
         void* first = kmalloc(16u);
         void* second = kmalloc(64u);
         void* third = kmalloc(128u);
