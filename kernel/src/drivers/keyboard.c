@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "heap.h"
+#include "../heap.h"
 
 static inline uint8_t port_inb(uint16_t port) {
     uint8_t value;

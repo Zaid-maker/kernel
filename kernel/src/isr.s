@@ -3,6 +3,7 @@
 .extern interrupts_handle_exception
 .extern interrupts_handle_timer_irq
 .extern interrupts_handle_keyboard_irq
+.extern interrupts_handle_mouse_irq
 
 .macro ISR_NOERR num
 .global isr_exception_\num
@@ -104,3 +105,14 @@ isr_keyboard:
     iret
 
 .size isr_keyboard, . - isr_keyboard
+
+.global isr_mouse
+.type isr_mouse, @function
+isr_mouse:
+    pusha
+    cld
+    call interrupts_handle_mouse_irq
+    popa
+    iret
+
+.size isr_mouse, . - isr_mouse

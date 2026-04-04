@@ -21,7 +21,7 @@ KERNEL_ELF := $(BUILD_DIR)/kernel.elf
 ISO_IMAGE := $(BUILD_DIR)/kernel.iso
 
 SRC_ASM := src/boot.s src/isr.s
-SRC_C := src/kernel.c src/terminal.c src/print.c src/keyboard.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c
+SRC_C := src/kernel.c src/terminal.c src/print.c src/drivers/keyboard.c src/drivers/mouse.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c
 
 OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
