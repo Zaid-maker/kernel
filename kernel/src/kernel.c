@@ -40,6 +40,13 @@ static char* g_status_mouse_buffer = (char*)0;
 static char* g_memmap_line_buffer = (char*)0;
 static char* g_pmm_stats_buffer = (char*)0;
 static char* g_heap_stats_buffer = (char*)0;
+
+/* Mouse cursor rendering state */
+static int32_t g_cursor_last_x = -1;
+static int32_t g_cursor_last_y = -1;
+static uint16_t g_cursor_saved_entry = 0u;
+static int g_cursor_visible = 0;
+
 static char* g_command_history[SHELL_HISTORY_SIZE];
 static uint32_t g_command_history_head = 0;
 static uint32_t g_command_history_count = 0;
@@ -717,6 +724,51 @@ static void shell_run_command(const char* cmd) {
     kprintln(cmd);
 }
 
+static void terminal_write_entry_at(uint16_t entry, size_t row, size_t col) {
+    if (row >= 24 || col >= 80) {
+        return;
+    }
+    volatile uint16_t* const terminal_buffer = (uint16_t*)0xB8000;
+    const size_t index = row * 80 + col;
+    terminal_buffer[index] = entry;
+}
+
+static void mouse_draw_cursor(void) {
+    struct mouse_state state;
+    mouse_get_state(&state);
+
+    /* Erase old cursor if it exists */
+    if (g_cursor_visible) {
+        terminal_write_entry_at(g_cursor_saved_entry, (size_t)g_cursor_last_y, (size_t)g_cursor_last_x);
+        g_cursor_visible = 0;
+    }
+
+    /* If position hasn't changed, don't redraw */
+    if (state.x == g_cursor_last_x && state.y == g_cursor_last_y) {
+        return;
+    }
+
+    /* Save the entry at new position and draw cursor */
+    g_cursor_saved_entry = terminal_getentry_at((size_t)state.y, (size_t)state.x);
+    g_cursor_last_x = state.x;
+    g_cursor_last_y = state.y;
+
+    /* Cursor color: inverted background (0x70) when idle, pressed button (0x0F) if left button is down */
+    uint8_t cursor_color;
+    if ((state.buttons & 0x01u) != 0u) {
+        /* Left button pressed: bright white on black, or any highlight */
+        cursor_color = 0x0Fu;  /* White on black */
+    } else {
+        /* Idle: inverted colors (white on blue) */
+        cursor_color = 0x70u;  /* White background, black foreground */
+    }
+
+    /* Draw the cursor block (0xDB is the full block character) */
+    const uint16_t cursor_entry = (uint16_t)0xDB | (uint16_t)cursor_color << 8;
+    terminal_write_entry_at(cursor_entry, (size_t)state.y, (size_t)state.x);
+    g_cursor_visible = 1;
+}
+
 static void draw_lock_status_bar(void) {
     terminal_fill_row(24, ' ', VGA_COLOR_WHITE, VGA_COLOR_BLUE);
     terminal_write_at("LOCKS", 24, 1, VGA_COLOR_WHITE, VGA_COLOR_BLUE);
@@ -897,6 +949,9 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
             draw_lock_status_bar();
             prev_uptime_seconds = uptime_seconds;
         }
+
+        /* Continuously draw/update the mouse cursor */
+        mouse_draw_cursor();
 
         if (key == 0) {
             __asm__ volatile("pause");

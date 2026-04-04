@@ -130,3 +130,12 @@ void terminal_fill_row(size_t row, char c, uint8_t fg, uint8_t bg) {
         terminal_buffer[index] = vga_make_entry((unsigned char)c, color);
     }
 }
+
+uint16_t terminal_getentry_at(size_t row, size_t col) {
+    if (row >= VGA_HEIGHT || col >= VGA_WIDTH) {
+        return 0u;
+    }
+
+    const size_t index = row * VGA_WIDTH + col;
+    return terminal_buffer[index];
+}
