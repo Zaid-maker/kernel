@@ -1,9 +1,11 @@
 #include <stdint.h>
 
 #include "interrupts.h"
-#include "keyboard.h"
+#include "drivers/keyboard.h"
 #include "multiboot.h"
+#include "drivers/mouse.h"
 #include "heap.h"
+#include "heap_diag.h"
 #include "pmm.h"
 #include "print.h"
 #include "sbuf.h"
@@ -135,6 +137,53 @@ static void shell_print_help(void) {
     kprintln(" - heaphist");
     kprintln(" - heapleaks [max]");
     kprintln(" - history");
+    kprintln(" - mouse");
+}
+
+static void kprint_i32(int32_t value) {
+    if (value < 0) {
+        terminal_write_char('-');
+        kprint_dec((uint32_t)(-(value + 1)) + 1u);
+        return;
+    }
+
+    kprint_dec((uint32_t)value);
+}
+
+static void shell_print_mouse(void) {
+    struct mouse_state state;
+    mouse_get_state(&state);
+
+    kprintln("Mouse state:");
+    kprint(" x       : ");
+    kprint_i32(state.x);
+    terminal_write_char('\n');
+
+    kprint(" y       : ");
+    kprint_i32(state.y);
+    terminal_write_char('\n');
+
+    kprint(" buttons : ");
+    if ((state.buttons & 0x01u) != 0u) {
+        kprint("L");
+    } else {
+        kprint("-");
+    }
+    if ((state.buttons & 0x02u) != 0u) {
+        kprint("R");
+    } else {
+        kprint("-");
+    }
+    if ((state.buttons & 0x04u) != 0u) {
+        kprint("M");
+    } else {
+        kprint("-");
+    }
+    terminal_write_char('\n');
+
+    kprint(" packets : ");
+    kprint_dec(state.packets);
+    terminal_write_char('\n');
 }
 
 static uint32_t cstr_len(const char* s) {
@@ -657,6 +706,11 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "mouse")) {
+        shell_print_mouse();
+        return;
+    }
+
     kprint("Unknown command: ");
     kprintln(cmd);
 }
@@ -726,6 +780,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     heap_initialize();
     const int print_heap_buffer_ok = print_initialize();
     const int keyboard_heap_queue_ok = keyboard_initialize();
+    const int mouse_ok = mouse_initialize();
     interrupts_initialize();
     timer_initialize(100u);
     interrupts_enable();
@@ -751,13 +806,18 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     terminal_write_char('\n');
 
     kprintln("Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).");
+    if (mouse_ok) {
+        kprintln("PS/2 mouse driver is ready (IRQ12 packet streaming). Use 'mouse' for state.");
+    } else {
+        kprintln("Warning: PS/2 mouse initialization failed; IRQ12 packets unavailable.");
+    }
     if (!print_heap_buffer_ok) {
         kprintln("Warning: print decimal buffer heap allocation failed; using static fallback.");
     }
     if (!keyboard_heap_queue_ok) {
         kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
     }
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heaptriage, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heaptriage, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history, mouse):");
 
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {

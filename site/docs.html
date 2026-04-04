@@ -57,7 +57,7 @@
         </article>
         <article class="doc-card">
           <h3>Input + IRQ</h3>
-          <p><span class="mono">src/interrupts.c</span> remaps PIC and loads IDT. <span class="mono">src/keyboard.c</span> handles IRQ scancodes and key queue.</p>
+          <p><span class="mono">src/interrupts.c</span> remaps PIC and loads IDT. <span class="mono">src/drivers/keyboard.c</span> handles IRQ scancodes and key queue, while <span class="mono">src/drivers/mouse.c</span> handles IRQ12 packet decode/state.</p>
         </article>
         <article class="doc-card">
           <h3>Timing</h3>
@@ -252,8 +252,12 @@ qemu-system-i386 -cdrom kernel/build/kernel.iso</code></pre>
             <td>IDT init, PIC remap, IRQ dispatch</td>
           </tr>
           <tr>
-            <td class="mono">kernel/src/keyboard.c</td>
+            <td class="mono">kernel/src/drivers/keyboard.c</td>
             <td>Scancode handling, lock states, input queue</td>
+          </tr>
+          <tr>
+            <td class="mono">kernel/src/drivers/mouse.c</td>
+            <td>PS/2 mouse init plus IRQ12 packet and button/position tracking</td>
           </tr>
           <tr>
             <td class="mono">kernel/src/terminal.c</td>

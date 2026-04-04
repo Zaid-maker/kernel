@@ -36,7 +36,7 @@ Date-style versions make milestone history easy to track and keep release progre
 
 ### What can I do with it today?
 
-You can boot in QEMU, use the shell commands, inspect lock state and uptime, and view the Multiboot memory map.
+You can boot in QEMU, use the shell commands, inspect lock state and uptime, view PS/2 mouse state, and view the Multiboot memory map.
 
 ## Features
 
@@ -50,11 +50,12 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Lock key LED synchronization for Caps Lock, Num Lock, and Scroll Lock.
 - Persistent bottom-row lock status bar showing CAPS/NUM/SCRL states.
 - Interrupt-driven keyboard input via IRQ1 using IDT + PIC remap.
+- PS/2 mouse driver with IRQ12 packet handling and basic position/button tracking.
 - Heap-backed keyboard IRQ queue with static fallback when allocation is unavailable.
 - CPU exception ISRs (0-31) with fault diagnostics screen showing vector, name, error code, EIP, CS, and EFLAGS.
 - Heap-backed exception diagnostics workspace buffer with static fallback.
 - PIT timer IRQ0 support with uptime display in the status bar.
-- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `heapcheck`, `heaptriage`, `heapfrag`, `heapstress [rounds]`, `heaphist`, `heapleaks [max]`, `history`.
+- Tiny interactive shell commands: `help`, `clear`, `version`, `locks`, `uptime`, `memmap`, `pmm`, `heap`, `heapcheck`, `heaptriage`, `heapfrag`, `heapstress [rounds]`, `heaphist`, `heapleaks [max]`, `history`, `mouse`.
 - Multiboot memory map viewer command (`memmap`) for physical layout inspection.
 - Heap-backed memmap line scratch buffer with stack fallback.
 - Early physical memory manager (bitmap-based frame tracking) with `pmm` shell stats command.
@@ -71,7 +72,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260403`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260404`
 
 ## Project Website
 
@@ -88,7 +89,8 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, and
 - `kernel/src/terminal.c`, `kernel/src/terminal.h`: VGA terminal driver.
 - `kernel/src/print.c`, `kernel/src/print.h`: tiny printing helpers.
 - `kernel/src/stats_util.c`, `kernel/src/stats_util.h`: shared stats/diagnostics line formatting helpers.
-- `kernel/src/keyboard.c`, `kernel/src/keyboard.h`: PS/2 keyboard IRQ handling, queueing, and scancode mapping.
+- `kernel/src/drivers/keyboard.c`, `kernel/src/drivers/keyboard.h`: PS/2 keyboard IRQ handling, queueing, and scancode mapping.
+- `kernel/src/drivers/mouse.c`, `kernel/src/drivers/mouse.h`: PS/2 mouse initialization and IRQ12 packet decoding.
 - `kernel/src/interrupts.c`, `kernel/src/interrupts.h`: IDT setup, PIC remap, and IRQ dispatch.
 - `kernel/src/timer.c`, `kernel/src/timer.h`: PIT configuration and uptime counters.
 - `kernel/src/multiboot.h`: Multiboot data structures used for boot-time memory map parsing.
