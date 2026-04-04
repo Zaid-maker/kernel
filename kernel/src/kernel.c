@@ -44,6 +44,7 @@ static char* g_heap_stats_buffer = (char*)0;
 /* Mouse cursor rendering state */
 static int32_t g_cursor_last_x = -1;
 static int32_t g_cursor_last_y = -1;
+static uint8_t g_cursor_last_pressed = 0u;
 static uint16_t g_cursor_saved_entry = 0u;
 static int g_cursor_visible = 0;
 
@@ -725,11 +726,11 @@ static void shell_run_command(const char* cmd) {
 }
 
 static void terminal_write_entry_at(uint16_t entry, size_t row, size_t col) {
-    if (row >= 24 || col >= 80) {
+    if (row >= VGA_TEXT_HEIGHT || col >= VGA_WIDTH) {
         return;
     }
     volatile uint16_t* const terminal_buffer = (uint16_t*)0xB8000;
-    const size_t index = row * 80 + col;
+    const size_t index = row * VGA_WIDTH + col;
     terminal_buffer[index] = entry;
 }
 
@@ -737,33 +738,28 @@ static void mouse_draw_cursor(void) {
     struct mouse_state state;
     mouse_get_state(&state);
 
-    /* Erase old cursor if it exists */
-    if (g_cursor_visible) {
-        terminal_write_entry_at(g_cursor_saved_entry, (size_t)g_cursor_last_y, (size_t)g_cursor_last_x);
-        g_cursor_visible = 0;
-    }
+    const uint8_t pressed = (state.buttons & 0x01u) != 0u ? 1u : 0u;
+    const int position_changed = state.x != g_cursor_last_x || state.y != g_cursor_last_y;
+    const int appearance_changed = pressed != g_cursor_last_pressed;
 
-    /* If position hasn't changed, don't redraw */
-    if (state.x == g_cursor_last_x && state.y == g_cursor_last_y) {
+    if (!position_changed && !appearance_changed) {
         return;
     }
 
-    /* Save the entry at new position and draw cursor */
-    g_cursor_saved_entry = terminal_getentry_at((size_t)state.y, (size_t)state.x);
-    g_cursor_last_x = state.x;
-    g_cursor_last_y = state.y;
-
-    /* Cursor color: inverted background (0x70) when idle, pressed button (0x0F) if left button is down */
-    uint8_t cursor_color;
-    if ((state.buttons & 0x01u) != 0u) {
-        /* Left button pressed: bright white on black, or any highlight */
-        cursor_color = 0x0Fu;  /* White on black */
-    } else {
-        /* Idle: inverted colors (white on blue) */
-        cursor_color = 0x70u;  /* White background, black foreground */
+    if (g_cursor_visible) {
+        /* Restore the original cell before redrawing or moving. */
+        terminal_write_entry_at(g_cursor_saved_entry, (size_t)g_cursor_last_y, (size_t)g_cursor_last_x);
     }
 
-    /* Draw the cursor block (0xDB is the full block character) */
+    g_cursor_last_x = state.x;
+    g_cursor_last_y = state.y;
+    g_cursor_last_pressed = pressed;
+
+    /* Save the entry at the current location before drawing the cursor. */
+    g_cursor_saved_entry = terminal_getentry_at((size_t)state.y, (size_t)state.x);
+
+    const uint8_t cursor_color = pressed != 0u ? 0x0Fu : 0x70u;
+
     const uint16_t cursor_entry = (uint16_t)0xDB | (uint16_t)cursor_color << 8;
     terminal_write_entry_at(cursor_entry, (size_t)state.y, (size_t)state.x);
     g_cursor_visible = 1;

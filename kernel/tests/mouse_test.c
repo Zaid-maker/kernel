@@ -1,6 +1,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifndef MOUSE_ENABLE_TEST_HOOKS
+#define MOUSE_ENABLE_TEST_HOOKS
+#endif
+
 #include "../src/drivers/mouse.h"
 
 static int expect_true(const char* name, int value) {
@@ -153,7 +157,7 @@ int main(void) {
         mouse_test_reset_io();
         push_init_success_sequence();
         mouse_initialize();
-        mouse_test_reset_io();
+        mouse_test_reset_queues();
 
         /* Test X clamping: large negative dx should clamp to 0 */
         mouse_test_push_data(0x08u);
@@ -173,7 +177,7 @@ int main(void) {
         mouse_test_reset_io();
         push_init_success_sequence();
         mouse_initialize();
-        mouse_test_reset_io();
+        mouse_test_reset_queues();
 
         /* Test X clamping: large positive dx from zero should clamp to 79 */
         mouse_test_push_data(0x08u);
@@ -193,7 +197,7 @@ int main(void) {
         mouse_test_reset_io();
         push_init_success_sequence();
         mouse_initialize();
-        mouse_test_reset_io();
+        mouse_test_reset_queues();
 
         /* Test Y clamping: large negative dy should clamp to 0 */
         mouse_test_push_data(0x08u);
@@ -213,7 +217,7 @@ int main(void) {
         mouse_test_reset_io();
         push_init_success_sequence();
         mouse_initialize();
-        mouse_test_reset_io();
+        mouse_test_reset_queues();
 
         /* Test Y clamping: large positive dy should clamp to 23 */
         mouse_test_push_data(0x08u);
@@ -232,7 +236,7 @@ int main(void) {
         mouse_test_reset_io();
         push_init_success_sequence();
         mouse_initialize();
-        mouse_test_reset_io();
+        mouse_test_reset_queues();
 
         /* Build up Y to maximum by several positive packets */
         /* First packet: dx=0, dy=-20 (y += 20) */
@@ -260,7 +264,7 @@ int main(void) {
         mouse_test_reset_io();
         push_init_success_sequence();
         mouse_initialize();
-        mouse_test_reset_io();
+        mouse_test_reset_queues();
 
         /* Test that EOI writes appear in out log after mouse_handle_irq */
         mouse_test_push_data(0x08u);

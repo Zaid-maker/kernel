@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "../terminal.h"
+
 static uint8_t g_mouse_initialized = 0u;
 static uint8_t g_packet_index = 0u;
 static uint8_t g_packet[3];
@@ -62,6 +64,11 @@ static inline void port_outb(uint16_t port, uint8_t value) {
 #else
     __asm__ volatile("outb %0, %1" : : "a"(value), "Nd"(port));
 #endif
+}
+
+static void mouse_send_eoi(void) {
+    port_outb(0xA0u, 0x20u);
+    port_outb(0x20u, 0x20u);
 }
 
 static int mouse_wait_input_clear(void) {
@@ -181,7 +188,7 @@ void mouse_handle_irq(void) {
 
     g_packet[g_packet_index++] = data;
     if (g_packet_index < 3u) {
-        return;
+        goto send_eoi;
     }
 
     g_packet_index = 0u;
@@ -199,14 +206,14 @@ void mouse_handle_irq(void) {
     /* Clamp X to [0, 79] and Y to [0, 23] for 80x24 text display */
     if (g_mouse_x < 0) {
         g_mouse_x = 0;
-    } else if (g_mouse_x > 79) {
-        g_mouse_x = 79;
+    } else if (g_mouse_x > (int32_t)(VGA_WIDTH - 1u)) {
+        g_mouse_x = (int32_t)(VGA_WIDTH - 1u);
     }
 
     if (g_mouse_y < 0) {
         g_mouse_y = 0;
-    } else if (g_mouse_y > 23) {
-        g_mouse_y = 23;
+    } else if (g_mouse_y > (int32_t)(VGA_TEXT_HEIGHT - 1u)) {
+        g_mouse_y = (int32_t)(VGA_TEXT_HEIGHT - 1u);
     }
 
     g_mouse_buttons = (uint8_t)(g_packet[0] & 0x07u);
@@ -214,8 +221,7 @@ void mouse_handle_irq(void) {
 
 send_eoi:
     /* Send EOI to both slave (0xA0) and master (0x20) PICs for IRQ12 */
-    port_outb(0xA0u, 0x20u);
-    port_outb(0x20u, 0x20u);
+    mouse_send_eoi();
 }
 
 void mouse_get_state(struct mouse_state* out_state) {
@@ -238,6 +244,14 @@ void mouse_test_reset_io(void) {
     g_mouse_buttons = 0u;
     g_mouse_packets = 0u;
 
+    g_test_status_count = 0u;
+    g_test_data_count = 0u;
+    g_test_status_head = 0u;
+    g_test_data_head = 0u;
+    g_test_out_count = 0u;
+}
+
+void mouse_test_reset_queues(void) {
     g_test_status_count = 0u;
     g_test_data_count = 0u;
     g_test_status_head = 0u;
