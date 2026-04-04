@@ -5,6 +5,7 @@
 #include "multiboot.h"
 #include "drivers/mouse.h"
 #include "heap.h"
+#include "heap_diag.h"
 #include "pmm.h"
 #include "print.h"
 #include "sbuf.h"
