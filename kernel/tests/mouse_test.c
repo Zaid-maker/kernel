@@ -150,5 +150,146 @@ int main(void) {
         ok &= expect_true("initialize failure bad ack", !mouse_initialize());
     }
 
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_io();
+
+        /* Test X clamping: large negative dx should clamp to 0 */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x80u);  /* dx = -128 */
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("x clamped to min", state.x, 0);
+        ok &= expect_u32("packets after clamp", state.packets, 1u);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_io();
+
+        /* Test X clamping: large positive dx from zero should clamp to 79 */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x7Fu);  /* dx = +127 */
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("x clamped to max", state.x, 79);
+        ok &= expect_u32("packets after x clamp", state.packets, 1u);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_io();
+
+        /* Test Y clamping: large negative dy should clamp to 0 */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x80u);  /* dy = -128, driver subtracts so y -= 128 */
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("y clamped to min", state.y, 0);
+        ok &= expect_u32("packets after y clamp", state.packets, 1u);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_io();
+
+        /* Test Y clamping: large positive dy should clamp to 23 */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x7Fu);  /* dy = +127, driver inverts: y -= 127 is negative, clamped to 0 */
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("y negative clamped at init", state.y, 0);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_io();
+
+        /* Build up Y to maximum by several positive packets */
+        /* First packet: dx=0, dy=-20 (y += 20) */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0xECu);  /* dy = -20, driver does y -= (-20) = y += 20 */
+        mouse_handle_irq();
+
+        /* Second: dy=-10 (y += 10, now 30, clamp to 23) */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0xF6u);  /* dy = -10, y += 10 */
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("y clamped to max", state.y, 23);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_io();
+
+        /* Test that EOI writes appear in out log after mouse_handle_irq */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x01u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+
+        uint32_t out_count = mouse_test_out_count();
+        ok &= expect_true("eoi writes logged", out_count >= 2u);
+
+        /* Scan for the two EOI writes: 0xA0=0x20 and 0x20=0x20 */
+        int found_slave_eoi = 0;
+        int found_master_eoi = 0;
+        for (uint32_t i = 0; i < out_count; ++i) {
+            uint16_t port = mouse_test_out_port(i);
+            uint8_t value = mouse_test_out_value(i);
+            if (port == 0xA0u && value == 0x20u) {
+                found_slave_eoi = 1;
+            }
+            if (port == 0x20u && value == 0x20u) {
+                found_master_eoi = 1;
+            }
+        }
+        ok &= expect_true("slave eoi sent", found_slave_eoi);
+        ok &= expect_true("master eoi sent", found_master_eoi);
+    }
+
     return ok ? 0 : 1;
 }
