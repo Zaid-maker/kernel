@@ -31,7 +31,7 @@
           <h1>Project SigmaBoot <span class="alpha-badge">ALPHA</span></h1>
           <p class="subtitle">
             A tiny operating system kernel focused on clarity: Multiboot startup,
-            VGA terminal, PS/2 keyboard input, lock-state LEDs, and release-ready CI.
+            VGA terminal, PS/2 keyboard and mouse input, lock-state LEDs, and release-ready CI.
           </p>
           <p class="warning-note"><strong>Warning:</strong> Experimental alpha software. Features and behavior may change without notice.</p>
           <div class="cta-row">
@@ -48,9 +48,10 @@
 PROJECT SIGMABOOT
 Kernel booted successfully.
 Keyboard input is ready (IRQ1 interrupt-driven, US scancodes).
+PS/2 mouse driver is ready (IRQ12 packet streaming). Use 'mouse' for state.
 Type below:
 > hello world
-LOCKS  CAPS:OFF  NUM:ON  SCRL:OFF
+LOCKS  CAPS:OFF  NUM:ON  SCRL:OFF  M:--- P:12
             </pre>
           </div>
         </div>
@@ -85,7 +86,7 @@ LOCKS  CAPS:OFF  NUM:ON  SCRL:OFF
         </article>
         <article class="card">
           <h3>Status Bar</h3>
-          <p>Persistent bottom-row lock-state display with CAPS/NUM/SCRL and live uptime (`T+Xs`).</p>
+          <p>Persistent bottom-row lock-state display with CAPS/NUM/SCRL, live mouse activity (`M:... P:...`), and uptime (`T+Xs`).</p>
         </article>
       </div>
     </section>
@@ -118,6 +119,7 @@ LOCKS  CAPS:OFF  NUM:ON  SCRL:OFF
         <li>Tag used: v0.0.20260404</li>
         <li>CI artifacts: workflow run downloads</li>
         <li>Release assets: direct downloads for users</li>
+        <li>Latest milestone: first PS/2 mouse driver (IRQ12), live status-bar activity indicator, and host-side mouse tests</li>
       </ul>
       <a class="btn btn-primary" href="https://github.com/Zaid-maker/kernel/releases/latest" id="release-link" target="_blank" rel="noopener noreferrer">Open Latest Release</a>
     </section>
@@ -212,6 +214,14 @@ LOCKS  CAPS:OFF  NUM:ON  SCRL:OFF
         <div class="point">
           <span></span>
           <p><strong>Done:</strong> host-side coverage reached 100% for heap allocator, diagnostics, and formatter test paths.</p>
+        </div>
+        <div class="point">
+          <span></span>
+          <p><strong>Done:</strong> first PS/2 mouse driver integrated on IRQ12 with packet decode, shell state command (`mouse`), and a live status-bar activity indicator.</p>
+        </div>
+        <div class="point">
+          <span></span>
+          <p><strong>Done:</strong> host-side PS/2 mouse driver tests added and wired into test/coverage pipelines (`mouse_test`).</p>
         </div>
         <div class="point">
           <span></span>

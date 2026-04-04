@@ -27,6 +27,7 @@ enum {
     HEAP_LEAKS_DEFAULT_LIMIT = 16,
     HEAP_LEAKS_MAX_LIMIT = 64,
     STATUS_UPTIME_BUFFER_SIZE = 24,
+    STATUS_MOUSE_BUFFER_SIZE = 24,
     MEMMAP_LINE_BUFFER_SIZE = 160,
     PMM_STATS_BUFFER_SIZE = 160,
     HEAP_STATS_BUFFER_SIZE = 160
@@ -35,6 +36,7 @@ enum {
 static uint32_t g_multiboot_magic = 0;
 static const struct multiboot_info* g_multiboot_info = (const struct multiboot_info*)0;
 static char* g_status_uptime_buffer = (char*)0;
+static char* g_status_mouse_buffer = (char*)0;
 static char* g_memmap_line_buffer = (char*)0;
 static char* g_pmm_stats_buffer = (char*)0;
 static char* g_heap_stats_buffer = (char*)0;
@@ -741,6 +743,21 @@ static void draw_lock_status_bar(void) {
         VGA_COLOR_BLUE
     );
 
+    struct mouse_state mouse_state;
+    mouse_get_state(&mouse_state);
+
+    char mouse_fallback[STATUS_MOUSE_BUFFER_SIZE];
+    char* mouse_line = g_status_mouse_buffer != 0 ? g_status_mouse_buffer : mouse_fallback;
+    sbuf_reset(mouse_line);
+    uint32_t mouse_len = 0u;
+    sbuf_append_str(mouse_line, STATUS_MOUSE_BUFFER_SIZE, &mouse_len, "M:");
+    sbuf_append_char(mouse_line, STATUS_MOUSE_BUFFER_SIZE, &mouse_len, (mouse_state.buttons & 0x01u) != 0u ? 'L' : '-');
+    sbuf_append_char(mouse_line, STATUS_MOUSE_BUFFER_SIZE, &mouse_len, (mouse_state.buttons & 0x02u) != 0u ? 'R' : '-');
+    sbuf_append_char(mouse_line, STATUS_MOUSE_BUFFER_SIZE, &mouse_len, (mouse_state.buttons & 0x04u) != 0u ? 'M' : '-');
+    sbuf_append_str(mouse_line, STATUS_MOUSE_BUFFER_SIZE, &mouse_len, " P:");
+    sbuf_append_dec_u32(mouse_line, STATUS_MOUSE_BUFFER_SIZE, &mouse_len, mouse_state.packets);
+    terminal_write_at(mouse_line, 24, 46, VGA_COLOR_WHITE, VGA_COLOR_BLUE);
+
     const uint32_t seconds = timer_seconds();
     const uint32_t centis = timer_centiseconds();
 
@@ -822,6 +839,11 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {
         kprintln("Warning: status bar uptime uses stack fallback (heap alloc failed).");
+    }
+
+    g_status_mouse_buffer = (char*)kmalloc(STATUS_MOUSE_BUFFER_SIZE);
+    if (g_status_mouse_buffer == 0) {
+        kprintln("Warning: status bar mouse indicator uses stack fallback (heap alloc failed).");
     }
 
     g_memmap_line_buffer = (char*)kmalloc(MEMMAP_LINE_BUFFER_SIZE);
