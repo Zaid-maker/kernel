@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MOUSE_ENABLE_TEST_HOOKS
 #include "../src/drivers/mouse.h"
 
 static int expect_true(const char* name, int value) {
