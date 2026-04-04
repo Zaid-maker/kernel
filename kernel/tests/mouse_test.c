@@ -199,12 +199,12 @@ int main(void) {
         mouse_initialize();
         mouse_test_reset_queues();
 
-        /* Test Y clamping: large negative dy should clamp to 0 */
+        /* Test Y clamping: large positive dy should clamp to 0 after inversion */
         mouse_test_push_data(0x08u);
         mouse_handle_irq();
         mouse_test_push_data(0x00u);
         mouse_handle_irq();
-        mouse_test_push_data(0x80u);  /* dy = -128, driver subtracts so y -= 128 */
+        mouse_test_push_data(0x7Fu);  /* dy = +127, driver subtracts so y -= 127 */
         mouse_handle_irq();
 
         struct mouse_state state;
