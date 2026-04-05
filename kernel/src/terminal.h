@@ -23,6 +23,12 @@ enum vga_color {
     VGA_COLOR_WHITE = 15
 };
 
+enum {
+    VGA_WIDTH = 80,
+    VGA_HEIGHT = 25,
+    VGA_TEXT_HEIGHT = 24
+};
+
 void terminal_initialize(void);
 void terminal_set_color(uint8_t fg, uint8_t bg);
 void terminal_write_char(char c);
@@ -30,5 +36,6 @@ void terminal_write(const char* data);
 void terminal_writeln(const char* data);
 void terminal_write_at(const char* data, size_t row, size_t col, uint8_t fg, uint8_t bg);
 void terminal_fill_row(size_t row, char c, uint8_t fg, uint8_t bg);
+uint16_t terminal_getentry_at(size_t row, size_t col);
 
 #endif

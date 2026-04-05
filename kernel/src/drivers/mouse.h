@@ -16,6 +16,7 @@ void mouse_get_state(struct mouse_state* out_state);
 
 #ifdef MOUSE_ENABLE_TEST_HOOKS
 void mouse_test_reset_io(void);
+void mouse_test_reset_queues(void);
 void mouse_test_push_status(uint8_t status);
 void mouse_test_push_data(uint8_t data);
 uint32_t mouse_test_out_count(void);

@@ -1,7 +1,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifndef MOUSE_ENABLE_TEST_HOOKS
 #define MOUSE_ENABLE_TEST_HOOKS
+#endif
+
 #include "../src/drivers/mouse.h"
 
 static int expect_true(const char* name, int value) {
@@ -148,6 +151,113 @@ int main(void) {
         mouse_test_push_data(0xFCu);
 
         ok &= expect_true("initialize failure bad ack", !mouse_initialize());
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_queues();
+
+        /* Test X clamping: large negative dx should clamp to 0 */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x80u);  /* dx = -128 */
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("x clamped to min", state.x, 0);
+        ok &= expect_u32("packets after clamp", state.packets, 1u);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_queues();
+
+        /* Test X clamping: large positive dx from zero should clamp to 79 */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x7Fu);  /* dx = +127 */
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("x clamped to max", state.x, 79);
+        ok &= expect_u32("packets after x clamp", state.packets, 1u);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_queues();
+
+        /* Test Y clamping: large positive dy should clamp to 0 after inversion */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x7Fu);  /* dy = +127, driver subtracts so y -= 127 */
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("y clamped to min", state.y, 0);
+        ok &= expect_u32("packets after y clamp", state.packets, 1u);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_queues();
+
+        /* Test Y clamping: large positive dy should clamp to 23 */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x7Fu);  /* dy = +127, driver inverts: y -= 127 is negative, clamped to 0 */
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("y negative clamped at init", state.y, 0);
+    }
+
+    {
+        mouse_test_reset_io();
+        push_init_success_sequence();
+        mouse_initialize();
+        mouse_test_reset_queues();
+
+        /* Build up Y to maximum by several positive packets */
+        /* First packet: dx=0, dy=-20 (y += 20) */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0xECu);  /* dy = -20, driver does y -= (-20) = y += 20 */
+        mouse_handle_irq();
+
+        /* Second: dy=-10 (y += 10, now 30, clamp to 23) */
+        mouse_test_push_data(0x08u);
+        mouse_handle_irq();
+        mouse_test_push_data(0x00u);
+        mouse_handle_irq();
+        mouse_test_push_data(0xF6u);  /* dy = -10, y += 10 */
+        mouse_handle_irq();
+
+        struct mouse_state state;
+        mouse_get_state(&state);
+        ok &= expect_i32("y clamped to max", state.y, 23);
     }
 
     return ok ? 0 : 1;
