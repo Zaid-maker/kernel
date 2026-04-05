@@ -66,11 +66,6 @@ static inline void port_outb(uint16_t port, uint8_t value) {
 #endif
 }
 
-static void mouse_send_eoi(void) {
-    port_outb(0xA0u, 0x20u);
-    port_outb(0x20u, 0x20u);
-}
-
 static int mouse_wait_input_clear(void) {
     for (uint32_t i = 0; i < 100000u; ++i) {
         if ((port_inb(0x64) & 0x02u) == 0u) {
@@ -179,22 +174,22 @@ void mouse_handle_irq(void) {
     const uint8_t data = port_inb(0x60);
 
     if (g_mouse_initialized == 0u) {
-        goto send_eoi;
+        return;
     }
 
     if (g_packet_index == 0u && (data & 0x08u) == 0u) {
-        goto send_eoi;
+        return;
     }
 
     g_packet[g_packet_index++] = data;
     if (g_packet_index < 3u) {
-        goto send_eoi;
+        return;
     }
 
     g_packet_index = 0u;
 
     if ((g_packet[0] & 0xC0u) != 0u) {
-        goto send_eoi;
+        return;
     }
 
     const int32_t dx = (int32_t)(int8_t)g_packet[1];
@@ -218,10 +213,6 @@ void mouse_handle_irq(void) {
 
     g_mouse_buttons = (uint8_t)(g_packet[0] & 0x07u);
     ++g_mouse_packets;
-
-send_eoi:
-    /* Send EOI to both slave (0xA0) and master (0x20) PICs for IRQ12 */
-    mouse_send_eoi();
 }
 
 void mouse_get_state(struct mouse_state* out_state) {

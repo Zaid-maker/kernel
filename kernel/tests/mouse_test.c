@@ -260,39 +260,5 @@ int main(void) {
         ok &= expect_i32("y clamped to max", state.y, 23);
     }
 
-    {
-        mouse_test_reset_io();
-        push_init_success_sequence();
-        mouse_initialize();
-        mouse_test_reset_queues();
-
-        /* Test that EOI writes appear in out log after mouse_handle_irq */
-        mouse_test_push_data(0x08u);
-        mouse_handle_irq();
-        mouse_test_push_data(0x01u);
-        mouse_handle_irq();
-        mouse_test_push_data(0x00u);
-        mouse_handle_irq();
-
-        uint32_t out_count = mouse_test_out_count();
-        ok &= expect_true("eoi writes logged", out_count >= 2u);
-
-        /* Scan for the two EOI writes: 0xA0=0x20 and 0x20=0x20 */
-        int found_slave_eoi = 0;
-        int found_master_eoi = 0;
-        for (uint32_t i = 0; i < out_count; ++i) {
-            uint16_t port = mouse_test_out_port(i);
-            uint8_t value = mouse_test_out_value(i);
-            if (port == 0xA0u && value == 0x20u) {
-                found_slave_eoi = 1;
-            }
-            if (port == 0x20u && value == 0x20u) {
-                found_master_eoi = 1;
-            }
-        }
-        ok &= expect_true("slave eoi sent", found_slave_eoi);
-        ok &= expect_true("master eoi sent", found_master_eoi);
-    }
-
     return ok ? 0 : 1;
 }
