@@ -115,6 +115,14 @@ void terminal_write_at(const char* data, size_t row, size_t col, uint8_t fg, uin
     }
 }
 
+/**
+ * Fill a VGA text-mode row with the specified character and color.
+ *
+ * @param row Zero-based row index to fill; if row is greater than or equal to VGA_HEIGHT the function returns without modifying the buffer.
+ * @param c Character to write into every column of the specified row.
+ * @param fg Foreground color (VGA color index, typically 0–15).
+ * @param bg Background color (VGA color index, typically 0–15).
+ */
 void terminal_fill_row(size_t row, char c, uint8_t fg, uint8_t bg) {
     if (row >= VGA_HEIGHT) {
         return;
@@ -127,6 +135,13 @@ void terminal_fill_row(size_t row, char c, uint8_t fg, uint8_t bg) {
     }
 }
 
+/**
+ * Retrieve the raw VGA text-mode entry at the specified row and column.
+ *
+ * @param row Zero-based row index within the text buffer.
+ * @param col Zero-based column index within the text buffer.
+ * @returns The 16-bit VGA buffer entry at (row, col), or `0u` if the coordinates are out of range.
+ */
 uint16_t terminal_getentry_at(size_t row, size_t col) {
     if (row >= VGA_HEIGHT || col >= VGA_WIDTH) {
         return 0u;

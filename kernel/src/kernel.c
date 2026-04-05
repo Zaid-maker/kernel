@@ -605,6 +605,16 @@ static void shell_print_memmap(void) {
     kprintln(line);
 }
 
+/**
+ * Dispatches a null-terminated shell command string to the appropriate built-in handler.
+ *
+ * Recognizes and executes built-in commands including:
+ * help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heaptriage,
+ * heapfrag, heapstress [rounds], heaphist, heapleaks [max], history, and mouse.
+ * Prints "Unknown command: <cmd>" for unrecognized commands. Empty input is ignored.
+ *
+ * @param cmd NUL-terminated command line to execute.
+ */
 static void shell_run_command(const char* cmd) {
     if (cmd[0] == '\0') {
         return;
@@ -725,6 +735,16 @@ static void shell_run_command(const char* cmd) {
     kprintln(cmd);
 }
 
+/**
+ * Write a 16-bit VGA text-mode cell into the text buffer at the specified row and column.
+ *
+ * Writes `entry` directly into VGA text memory (physical 0xB8000) at (row, col). If `row`
+ * is >= VGA_TEXT_HEIGHT or `col` is >= VGA_WIDTH the call does nothing.
+ *
+ * @param entry 16-bit VGA text cell value (low byte = character, high byte = attribute).
+ * @param row Zero-based row index; valid range is 0..(VGA_TEXT_HEIGHT-1).
+ * @param col Zero-based column index; valid range is 0..(VGA_WIDTH-1).
+ */
 static void terminal_write_entry_at(uint16_t entry, size_t row, size_t col) {
     if (row >= VGA_TEXT_HEIGHT || col >= VGA_WIDTH) {
         return;
@@ -734,6 +754,20 @@ static void terminal_write_entry_at(uint16_t entry, size_t row, size_t col) {
     terminal_buffer[index] = entry;
 }
 
+/**
+ * Update on-screen mouse cursor to reflect the current mouse state.
+ *
+ * Reads the current mouse position and button state; if neither the cursor
+ * position nor its pressed/unpressed appearance changed, no action is taken.
+ * Otherwise, the previously saved VGA cell is restored (when the cursor was
+ * visible), the underlying VGA cell at the new position is saved, and a block
+ * cursor glyph is written at the new coordinates. The cursor glyph uses the
+ * attribute 0x0F when the left button is pressed and 0x70 when it is not.
+ *
+ * This function updates the following global cursor state: g_cursor_last_x,
+ * g_cursor_last_y, g_cursor_last_pressed, g_cursor_saved_entry, and
+ * g_cursor_visible.
+ */
 static void mouse_draw_cursor(void) {
     struct mouse_state state;
     mouse_get_state(&state);
@@ -765,6 +799,15 @@ static void mouse_draw_cursor(void) {
     g_cursor_visible = 1;
 }
 
+/**
+ * Update the status bar on the bottom row with keyboard lock states, mouse state, and uptime.
+ *
+ * Clears and redraws terminal row 24 with lock indicators for CAPS/NUM/SCRL, a compact mouse
+ * summary showing left/right/middle button flags and packet count, and a "T+<seconds>.<centis>s"
+ * uptime field. Uses preallocated heap-backed format buffers when available; otherwise uses
+ * stack-local fallbacks. This function reads keyboard, mouse, and timer state and writes directly
+ * to the VGA text buffer.
+ */
 static void draw_lock_status_bar(void) {
     terminal_fill_row(24, ' ', VGA_COLOR_WHITE, VGA_COLOR_BLUE);
     terminal_write_at("LOCKS", 24, 1, VGA_COLOR_WHITE, VGA_COLOR_BLUE);
@@ -836,6 +879,24 @@ static void draw_lock_status_bar(void) {
     terminal_write_at(uptime, 24, 65, VGA_COLOR_WHITE, VGA_COLOR_BLUE);
 }
 
+/**
+ * Kernel entry point that initializes core subsystems and runs the interactive
+ * shell plus periodic UI (status bar and mouse cursor) loop.
+ *
+ * Initializes terminal, physical memory manager, heap, input devices,
+ * interrupts, and timer; allocates optional heap-backed status buffers when
+ * available; then enters an infinite loop that services keyboard input,
+ * renders the mouse cursor and status bar, and dispatches shell commands.
+ *
+ * @param multiboot_magic Magic value provided by the bootloader identifying
+ *                        multiboot-compliant boots (passed through from the
+ *                        bootloader).
+ * @param multiboot_info_addr Physical address of the multiboot information
+ *                            structure provided by the bootloader.
+ *
+ * @note This function never returns; it hands control to the kernel's main
+ *       interactive loop.
+ */
 void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     g_multiboot_magic = multiboot_magic;
     g_multiboot_info = (const struct multiboot_info*)(uintptr_t)multiboot_info_addr;
