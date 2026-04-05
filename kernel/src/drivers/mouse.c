@@ -170,6 +170,19 @@ int mouse_initialize(void) {
     return 1;
 }
 
+/**
+ * Handle a PS/2 mouse IRQ by consuming one data byte and, when a full 3-byte
+ * packet is assembled, decoding movement and button state into global mouse
+ * state.
+ *
+ * Reads a byte from port 0x60 and appends it to the current packet. If the
+ * driver is not initialized or the first packet byte does not have bit 3 set,
+ * the byte is ignored. Once three packet bytes are collected, the packet is
+ * validated (bits 6–7 of the first byte must be zero), `dx`/`dy` are decoded
+ * as signed 8-bit deltas, and the global cursor position and button state are
+ * updated. Cursor coordinates are clamped to the text-mode bounds defined by
+ * VGA_WIDTH and VGA_TEXT_HEIGHT. The global packet counter is incremented.
+ */
 void mouse_handle_irq(void) {
     const uint8_t data = port_inb(0x60);
 
@@ -227,6 +240,14 @@ void mouse_get_state(struct mouse_state* out_state) {
 }
 
 #ifdef MOUSE_ENABLE_TEST_HOOKS
+/**
+ * Reset mouse runtime state and test I/O queues to their initial defaults.
+ *
+ * Clears the public mouse globals (initialization flag, packet index, cursor
+ * coordinates, button state, and packet count) and resets all test-mode
+ * input/output queue counters and heads so subsequent tests start from a
+ * known, empty state.
+ */
 void mouse_test_reset_io(void) {
     g_mouse_initialized = 0u;
     g_packet_index = 0u;
@@ -242,6 +263,12 @@ void mouse_test_reset_io(void) {
     g_test_out_count = 0u;
 }
 
+/**
+ * Reset the mouse test input queues and output-log counters.
+ *
+ * Clears the status and data queue counts and head indices used by
+ * test-mode input emulation, and resets the recorded output count.
+ */
 void mouse_test_reset_queues(void) {
     g_test_status_count = 0u;
     g_test_data_count = 0u;
@@ -250,6 +277,13 @@ void mouse_test_reset_queues(void) {
     g_test_out_count = 0u;
 }
 
+/**
+ * Append a status byte to the test status input queue.
+ *
+ * If the queue is at capacity, the queue is left unchanged.
+ *
+ * @param status Status byte to enqueue.
+ */
 void mouse_test_push_status(uint8_t status) {
     if (g_test_status_count >= MOUSE_TEST_IO_QUEUE_CAP) {
         return;
