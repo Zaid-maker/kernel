@@ -20,7 +20,6 @@ stack_top:
 
 .section .text
 .global _start
-.type _start, @function
 _start:
     cli
     mov $stack_top, %esp
@@ -31,5 +30,3 @@ _start:
 .hang:
     hlt
     jmp .hang
-
-.size _start, . - _start

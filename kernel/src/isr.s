@@ -4,10 +4,12 @@
 .extern interrupts_handle_timer_irq
 .extern interrupts_handle_keyboard_irq
 .extern interrupts_handle_mouse_irq
+.extern interrupts_handle_syscall
+.extern g_user_return_esp
+.extern g_user_return_eip
 
 .macro ISR_NOERR num
 .global isr_exception_\num
-.type isr_exception_\num, @function
 isr_exception_\num:
     pusha
     cld
@@ -24,12 +26,10 @@ isr_exception_\num:
     popa
     iret
 
-.size isr_exception_\num, . - isr_exception_\num
 .endm
 
 .macro ISR_ERR num
 .global isr_exception_\num
-.type isr_exception_\num, @function
 isr_exception_\num:
     pusha
     cld
@@ -48,7 +48,6 @@ isr_exception_\num:
     addl $4, %esp
     iret
 
-.size isr_exception_\num, . - isr_exception_\num
 .endm
 
 ISR_NOERR 0
@@ -85,7 +84,6 @@ ISR_ERR   30
 ISR_NOERR 31
 
 .global isr_timer
-.type isr_timer, @function
 isr_timer:
     pusha
     cld
@@ -93,10 +91,7 @@ isr_timer:
     popa
     iret
 
-.size isr_timer, . - isr_timer
-
 .global isr_keyboard
-.type isr_keyboard, @function
 isr_keyboard:
     pusha
     cld
@@ -104,10 +99,7 @@ isr_keyboard:
     popa
     iret
 
-.size isr_keyboard, . - isr_keyboard
-
 .global isr_mouse
-.type isr_mouse, @function
 isr_mouse:
     pusha
     cld
@@ -115,4 +107,59 @@ isr_mouse:
     popa
     iret
 
-.size isr_mouse, . - isr_mouse
+.global isr_syscall
+isr_syscall:
+    pusha
+    cld
+    pushl %esp
+    call interrupts_handle_syscall
+    addl $4, %esp
+    popa
+    iret
+
+.global gdt_flush
+gdt_flush:
+    movl 4(%esp), %eax
+    lgdt (%eax)
+    movw $0x10, %ax
+    movw %ax, %ds
+    movw %ax, %es
+    movw %ax, %fs
+    movw %ax, %gs
+    movw %ax, %ss
+    ljmp $0x08, $gdt_flush_done
+gdt_flush_done:
+    ret
+
+.global tss_flush
+tss_flush:
+    movw 4(%esp), %ax
+    ltr %ax
+    ret
+
+.global user_mode_enter
+user_mode_enter:
+    movl 4(%esp), %eax
+    movl 8(%esp), %edx
+
+    movl %esp, g_user_return_esp
+    movl $user_mode_return_label, g_user_return_eip
+
+    pushl $0x23
+    pushl %edx
+    pushfl
+    popl %ecx
+    orl $0x200, %ecx
+    pushl %ecx
+    pushl $0x1B
+    pushl %eax
+    iret
+
+user_mode_return_label:
+    ret
+
+.global user_mode_return_to_kernel_asm
+user_mode_return_to_kernel_asm:
+    movl g_user_return_esp, %esp
+    jmp *g_user_return_eip
+

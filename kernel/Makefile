@@ -21,14 +21,36 @@ KERNEL_ELF := $(BUILD_DIR)/kernel.elf
 ISO_IMAGE := $(BUILD_DIR)/kernel.iso
 
 SRC_ASM := src/boot.s src/isr.s
-SRC_C := src/kernel.c src/terminal.c src/print.c src/drivers/keyboard.c src/drivers/mouse.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c
+SRC_C := src/kernel.c src/terminal.c src/print.c src/drivers/keyboard.c src/drivers/mouse.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c src/gdt.c src/syscall.c src/user_mode.c
 
 OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
 
-.PHONY: all clean run iso check-tools test coverage
+.PHONY: all clean run iso check-tools check-toolchain test coverage
 
-all: $(KERNEL_BIN)
+all: check-toolchain $(KERNEL_BIN)
+
+check-toolchain:
+	@command -v $(AS) >/dev/null 2>&1 || { \
+		echo "Missing assembler: $(AS)"; \
+		echo "Install an ELF i686 cross toolchain and build with CROSS_COMPILE=i686-elf-"; \
+		exit 1; \
+	}
+	@command -v $(CC) >/dev/null 2>&1 || { \
+		echo "Missing compiler: $(CC)"; \
+		echo "Install an ELF i686 cross toolchain and build with CROSS_COMPILE=i686-elf-"; \
+		exit 1; \
+	}
+	@command -v $(LD) >/dev/null 2>&1 || { \
+		echo "Missing linker: $(LD)"; \
+		echo "Install an ELF i686 cross toolchain and build with CROSS_COMPILE=i686-elf-"; \
+		exit 1; \
+	}
+	@$(LD) -V 2>&1 | grep -q 'elf_i386' || { \
+		echo "Linker $(LD) does not support elf_i386."; \
+		echo "Use an ELF cross linker (for example i686-elf-ld) and set CROSS_COMPILE=i686-elf-"; \
+		exit 1; \
+	}
 
 check-tools:
 	@command -v $(CC) >/dev/null 2>&1 || { echo "Missing $(CC)"; exit 1; }
