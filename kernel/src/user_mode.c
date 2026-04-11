@@ -25,6 +25,8 @@ static inline uint32_t user_syscall2(uint32_t number, uint32_t arg0, uint32_t ar
     return result;
 }
 
+static inline void user_syscall_exit(void) __attribute__((noreturn));
+
 static inline void user_syscall_exit(void) {
     __asm__ volatile(
         "int $0x80"
@@ -32,6 +34,8 @@ static inline void user_syscall_exit(void) {
         : "a"(SYSCALL_EXIT)
         : "ebx", "ecx", "edx", "memory"
     );
+
+    __builtin_unreachable();
 }
 
 __attribute__((noreturn)) static void user_demo_entry(void) {

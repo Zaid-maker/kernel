@@ -73,16 +73,16 @@ $(BUILD_DIR)/%.o: src/%.c | $(BUILD_DIR)
 $(KERNEL_ELF): $(OBJ_ASM) $(OBJ_C) linker.ld
 	$(LD) $(LDFLAGS) -o $@ $(OBJ_ASM) $(OBJ_C)
 
-$(KERNEL_BIN): $(KERNEL_ELF)
+$(KERNEL_BIN): check-toolchain $(KERNEL_ELF)
 	cp $(KERNEL_ELF) $@
 
-iso: $(KERNEL_BIN)
+iso: check-toolchain $(KERNEL_BIN)
 	mkdir -p $(ISO_DIR)/boot/grub
 	cp $(KERNEL_BIN) $(ISO_DIR)/boot/kernel.bin
 	cp grub/grub.cfg $(ISO_DIR)/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO_IMAGE) $(ISO_DIR)
 
-run: iso
+run: check-toolchain iso
 	qemu-system-i386 -cdrom $(ISO_IMAGE)
 
 test: $(BUILD_DIR)
@@ -94,6 +94,7 @@ test: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_CFLAGS) tests/heap_runtime_test.c src/heap.c src/heap_diag.c src/sbuf.c tests/pmm_stub.c -o $(BUILD_DIR)/heap_runtime_test
 	$(HOST_CC) $(HOST_CFLAGS) -DHEAP_ENABLE_TEST_HOOKS tests/heap_integrity_test.c src/heap.c src/heap_diag.c src/sbuf.c tests/pmm_stub.c -o $(BUILD_DIR)/heap_integrity_test
 	$(HOST_CC) $(HOST_CFLAGS) -DMOUSE_ENABLE_TEST_HOOKS tests/mouse_test.c src/drivers/mouse.c -o $(BUILD_DIR)/mouse_test
+	$(HOST_CC) $(HOST_CFLAGS) -DSYSCALL_ENABLE_TEST_HOOKS tests/syscall_test.c src/syscall.c -o $(BUILD_DIR)/syscall_test
 	$(BUILD_DIR)/sbuf_test
 	$(BUILD_DIR)/sbuf_integration_test
 	$(BUILD_DIR)/sbuf_boundary_test
@@ -102,6 +103,7 @@ test: $(BUILD_DIR)
 	$(BUILD_DIR)/heap_runtime_test
 	$(BUILD_DIR)/heap_integrity_test
 	$(BUILD_DIR)/mouse_test
+	$(BUILD_DIR)/syscall_test
 
 coverage: $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/coverage
@@ -109,6 +111,7 @@ coverage: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DHEAP_ENABLE_TEST_HOOKS -c src/heap.c -o $(BUILD_DIR)/heap_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/heap_diag.c -o $(BUILD_DIR)/heap_diag_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DMOUSE_ENABLE_TEST_HOOKS -c src/drivers/mouse.c -o $(BUILD_DIR)/mouse_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DSYSCALL_ENABLE_TEST_HOOKS -c src/syscall.c -o $(BUILD_DIR)/syscall_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/stats_util.c -o $(BUILD_DIR)/stats_util_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_test.c -o $(BUILD_DIR)/sbuf_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_integration_test.c -o $(BUILD_DIR)/sbuf_integration_test_cov.o
@@ -118,6 +121,7 @@ coverage: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/heap_runtime_test.c -o $(BUILD_DIR)/heap_runtime_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DHEAP_ENABLE_TEST_HOOKS -c tests/heap_integrity_test.c -o $(BUILD_DIR)/heap_integrity_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DMOUSE_ENABLE_TEST_HOOKS -c tests/mouse_test.c -o $(BUILD_DIR)/mouse_test_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DSYSCALL_ENABLE_TEST_HOOKS -c tests/syscall_test.c -o $(BUILD_DIR)/syscall_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/pmm_stub.c -o $(BUILD_DIR)/pmm_stub_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_integration_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_integration_test_cov
@@ -127,6 +131,7 @@ coverage: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_runtime_test_cov.o $(BUILD_DIR)/heap_cov.o $(BUILD_DIR)/heap_diag_cov.o $(BUILD_DIR)/sbuf_cov.o $(BUILD_DIR)/pmm_stub_cov.o -o $(BUILD_DIR)/heap_runtime_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_integrity_test_cov.o $(BUILD_DIR)/heap_cov.o $(BUILD_DIR)/heap_diag_cov.o $(BUILD_DIR)/sbuf_cov.o $(BUILD_DIR)/pmm_stub_cov.o -o $(BUILD_DIR)/heap_integrity_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/mouse_test_cov.o $(BUILD_DIR)/mouse_cov.o -o $(BUILD_DIR)/mouse_test_cov
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/syscall_test_cov.o $(BUILD_DIR)/syscall_cov.o -o $(BUILD_DIR)/syscall_test_cov
 	lcov --zerocounters --directory $(BUILD_DIR)
 	$(BUILD_DIR)/sbuf_test_cov
 	$(BUILD_DIR)/sbuf_integration_test_cov
@@ -136,6 +141,7 @@ coverage: $(BUILD_DIR)
 	$(BUILD_DIR)/heap_runtime_test_cov
 	$(BUILD_DIR)/heap_integrity_test_cov
 	$(BUILD_DIR)/mouse_test_cov
+	$(BUILD_DIR)/syscall_test_cov
 	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage/lcov.raw.info
 	lcov --remove $(BUILD_DIR)/coverage/lcov.raw.info '/usr/*' '*/tests/*' --output-file $(BUILD_DIR)/coverage/lcov.info
 	lcov --summary $(BUILD_DIR)/coverage/lcov.info
