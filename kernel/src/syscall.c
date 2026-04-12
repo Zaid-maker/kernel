@@ -58,7 +58,7 @@ void syscall_handle(struct syscall_frame* frame) {
 
         case SYSCALL_EXIT:
             user_mode_exit_to_kernel();
-            return;
+            __builtin_unreachable();
 
         default:
             frame->eax = 0xFFFFFFFFu;

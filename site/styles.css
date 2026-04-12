@@ -69,6 +69,7 @@ body::after {
     linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
   background-size: 36px 36px;
+  -webkit-mask-image: radial-gradient(circle at 50% 45%, black 28%, transparent 95%);
   mask-image: radial-gradient(circle at 50% 45%, black 28%, transparent 95%);
   pointer-events: none;
   z-index: 0;
@@ -119,12 +120,31 @@ body::after {
   transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
-.topbar a:hover,
-.topbar a:focus-visible {
+.topbar a:hover {
   color: #c8fff2;
   border-color: #2f4b62;
   background: rgba(23, 39, 55, 0.68);
-  outline: none;
+}
+
+.topbar a:focus-visible,
+.cta-row .btn:focus-visible {
+  color: #c8fff2;
+  border-color: #2f4b62;
+  background: rgba(23, 39, 55, 0.68);
+  outline: 2px solid #7cf5d8;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(35, 200, 255, 0.24);
+}
+
+.btn:focus-visible {
+  outline: 2px solid #7cf5d8;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(35, 200, 255, 0.24);
+}
+
+.btn-ghost:focus-visible,
+.btn-primary:focus-visible {
+  transform: translateY(-2px);
 }
 
 main {
@@ -649,6 +669,15 @@ footer {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .stagger > * {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
   }
 }
 

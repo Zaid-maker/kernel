@@ -1,11 +1,14 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <setjmp.h>
 
 #include "../src/syscall.h"
 
 static char g_terminal_out[8192];
 static uint32_t g_terminal_len = 0u;
 static uint32_t g_fake_uptime = 0u;
+static volatile uint32_t g_user_mode_exit_invoked = 0u;
+static jmp_buf* g_user_mode_exit_jmp = 0;
 
 enum {
     SYSCALL_TEST_PTR_NULL = 0u,
@@ -40,7 +43,11 @@ uint32_t timer_seconds(void) {
 }
 
 void user_mode_exit_to_kernel(void) {
-    /* Not exercised in this host-side syscall unit test. */
+    g_user_mode_exit_invoked = 1u;
+    if (g_user_mode_exit_jmp != 0) {
+        longjmp(*g_user_mode_exit_jmp, 1);
+    }
+
     for (;;) {
     }
 }
@@ -63,6 +70,11 @@ static int expect_u32(const char* name, uint32_t actual, uint32_t expected) {
 }
 
 static int expect_bytes(const char* name, const char* expected, uint32_t len) {
+    if (len > g_terminal_len) {
+        printf("FAIL: %s (len=%u exceeds captured=%u)\n", name, len, g_terminal_len);
+        return 0;
+    }
+
     for (uint32_t i = 0u; i < len; ++i) {
         if (g_terminal_out[i] != expected[i]) {
             printf("FAIL: %s (mismatch at %u)\n", name, i);
@@ -144,6 +156,23 @@ int main(void) {
         frame.eax = 99u;
         syscall_handle(&frame);
         ok &= expect_u32("unknown syscall", frame.eax, 0xFFFFFFFFu);
+    }
+
+    {
+        struct syscall_frame frame = {0};
+        jmp_buf exit_env;
+        g_user_mode_exit_invoked = 0u;
+        g_user_mode_exit_jmp = &exit_env;
+
+        if (setjmp(exit_env) == 0) {
+            frame.eax = SYSCALL_EXIT;
+            syscall_handle(&frame);
+            ok &= expect_u32("syscall exit must not return", 0u, 1u);
+        } else {
+            ok &= expect_u32("syscall exit invoked", g_user_mode_exit_invoked, 1u);
+        }
+
+        g_user_mode_exit_jmp = 0;
     }
 
     return ok ? 0 : 1;

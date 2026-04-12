@@ -26,7 +26,7 @@ SRC_C := src/kernel.c src/terminal.c src/print.c src/drivers/keyboard.c src/driv
 OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
 
-.PHONY: all clean run iso check-tools check-toolchain test coverage
+.PHONY: all clean run iso check-tools check-toolchain test coverage coverage-build coverage-run coverage-report
 
 all: check-toolchain $(KERNEL_BIN)
 
@@ -105,7 +105,9 @@ test: $(BUILD_DIR)
 	$(BUILD_DIR)/mouse_test
 	$(BUILD_DIR)/syscall_test
 
-coverage: $(BUILD_DIR)
+coverage: coverage-build coverage-run coverage-report
+
+coverage-build: $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/coverage
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/sbuf.c -o $(BUILD_DIR)/sbuf_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DHEAP_ENABLE_TEST_HOOKS -c src/heap.c -o $(BUILD_DIR)/heap_cov.o
@@ -132,6 +134,8 @@ coverage: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_integrity_test_cov.o $(BUILD_DIR)/heap_cov.o $(BUILD_DIR)/heap_diag_cov.o $(BUILD_DIR)/sbuf_cov.o $(BUILD_DIR)/pmm_stub_cov.o -o $(BUILD_DIR)/heap_integrity_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/mouse_test_cov.o $(BUILD_DIR)/mouse_cov.o -o $(BUILD_DIR)/mouse_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/syscall_test_cov.o $(BUILD_DIR)/syscall_cov.o -o $(BUILD_DIR)/syscall_test_cov
+
+coverage-run: coverage-build
 	lcov --zerocounters --directory $(BUILD_DIR)
 	$(BUILD_DIR)/sbuf_test_cov
 	$(BUILD_DIR)/sbuf_integration_test_cov
@@ -142,6 +146,8 @@ coverage: $(BUILD_DIR)
 	$(BUILD_DIR)/heap_integrity_test_cov
 	$(BUILD_DIR)/mouse_test_cov
 	$(BUILD_DIR)/syscall_test_cov
+
+coverage-report: coverage-run
 	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage/lcov.raw.info
 	lcov --remove $(BUILD_DIR)/coverage/lcov.raw.info '/usr/*' '*/tests/*' --output-file $(BUILD_DIR)/coverage/lcov.info
 	lcov --summary $(BUILD_DIR)/coverage/lcov.info
