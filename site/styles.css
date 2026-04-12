@@ -10,6 +10,9 @@
   --brand-2: #23c8ff;
   --signal: #ffc26c;
   --danger: #ff996f;
+  --warning-border: #7f5636;
+  --warning-bg: rgba(127, 86, 54, 0.22);
+  --warning-text: #ffd8ac;
   --card: linear-gradient(160deg, rgba(18, 31, 47, 0.82), rgba(10, 18, 29, 0.92));
   --shadow: 0 22px 54px rgba(0, 0, 0, 0.42);
   --glow: 0 0 0 1px rgba(88, 243, 181, 0.2), 0 0 36px rgba(35, 200, 255, 0.16);
@@ -207,9 +210,9 @@ h1 {
 .warning-note {
   margin: 14px 0 0;
   display: inline-block;
-  border: 1px solid #7f5636;
-  background: rgba(127, 86, 54, 0.22);
-  color: #ffd8ac;
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
   padding: 9px 13px;
   border-radius: 12px;
 }

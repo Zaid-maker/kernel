@@ -105,8 +105,6 @@ test: $(BUILD_DIR)
 	$(BUILD_DIR)/mouse_test
 	$(BUILD_DIR)/syscall_test
 
-coverage: coverage-build coverage-run coverage-report
-
 coverage-build: $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/coverage
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/sbuf.c -o $(BUILD_DIR)/sbuf_cov.o
@@ -151,6 +149,8 @@ coverage-report: coverage-run
 	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage/lcov.raw.info
 	lcov --remove $(BUILD_DIR)/coverage/lcov.raw.info '/usr/*' '*/tests/*' --output-file $(BUILD_DIR)/coverage/lcov.info
 	lcov --summary $(BUILD_DIR)/coverage/lcov.info
+
+coverage: coverage-build coverage-run coverage-report
 
 clean:
 	rm -rf $(BUILD_DIR)

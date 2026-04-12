@@ -9,6 +9,7 @@ static uint32_t g_terminal_len = 0u;
 static uint32_t g_fake_uptime = 0u;
 static volatile uint32_t g_user_mode_exit_invoked = 0u;
 static jmp_buf* g_user_mode_exit_jmp = 0;
+static uint32_t g_irq_yield_count = 0u;
 
 enum {
     SYSCALL_TEST_PTR_NULL = 0u,
@@ -29,6 +30,18 @@ const char* syscall_test_resolve_ptr(uint32_t token) {
         default:
             return 0;
     }
+}
+
+void syscall_test_record_irq_yield(void) {
+    ++g_irq_yield_count;
+}
+
+void syscall_test_reset_irq_yield_count(void) {
+    g_irq_yield_count = 0u;
+}
+
+uint32_t syscall_test_irq_yield_count(void) {
+    return g_irq_yield_count;
 }
 
 void terminal_write_char(char c) {
@@ -122,6 +135,7 @@ int main(void) {
 
     {
         reset_terminal_capture();
+        syscall_test_reset_irq_yield_count();
 
         static char large[5000];
         for (uint32_t i = 0u; i < (uint32_t)sizeof(large); ++i) {
@@ -138,8 +152,8 @@ int main(void) {
 
         ok &= expect_u32("write large returns full len", frame.eax, (uint32_t)sizeof(large));
         ok &= expect_u32("write large emits full len", g_terminal_len, (uint32_t)sizeof(large));
-        ok &= expect_u32("write large first char", (uint32_t)(uint8_t)g_terminal_out[0], (uint32_t)(uint8_t)'A');
-        ok &= expect_u32("write large last char", (uint32_t)(uint8_t)g_terminal_out[sizeof(large) - 1u], (uint32_t)(uint8_t)large[sizeof(large) - 1u]);
+        ok &= expect_bytes("write large output", large, (uint32_t)sizeof(large));
+        ok &= expect_u32("write large yield count", syscall_test_irq_yield_count(), 1u);
     }
 
     {

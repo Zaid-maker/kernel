@@ -34,4 +34,10 @@ enum {
 
 void syscall_handle(struct syscall_frame* frame);
 
+#ifdef SYSCALL_ENABLE_TEST_HOOKS
+const char* syscall_test_resolve_ptr(uint32_t token);
+void syscall_test_reset_irq_yield_count(void);
+uint32_t syscall_test_irq_yield_count(void);
+#endif
+
 #endif
