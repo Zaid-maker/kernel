@@ -6,6 +6,7 @@
 #include "drivers/keyboard.h"
 #include "drivers/mouse.h"
 #include "print.h"
+#include "syscall.h"
 #include "stats_util.h"
 #include "timer.h"
 #include "terminal.h"
@@ -60,6 +61,7 @@ extern void isr_exception_31(void);
 extern void isr_timer(void);
 extern void isr_keyboard(void);
 extern void isr_mouse(void);
+extern void isr_syscall(void);
 
 static const uint32_t exception_handlers[32] = {
     (uint32_t)isr_exception_0,
@@ -247,6 +249,7 @@ void interrupts_initialize(void) {
     idt_set_gate(0x20u, (uint32_t)isr_timer, 0x08u, 0x8Eu);
     idt_set_gate(0x21u, (uint32_t)isr_keyboard, 0x08u, 0x8Eu);
     idt_set_gate(0x2Cu, (uint32_t)isr_mouse, 0x08u, 0x8Eu);
+    idt_set_gate(0x80u, (uint32_t)isr_syscall, 0x08u, 0xEEu);
 
     pic_remap(0x20u, 0x28u);
     pic_set_irq_mask(0xF8u, 0xEFu);
@@ -271,6 +274,10 @@ void interrupts_handle_keyboard_irq(void) {
 void interrupts_handle_mouse_irq(void) {
     mouse_handle_irq();
     pic_send_eoi(12);
+}
+
+void interrupts_handle_syscall(struct syscall_frame* frame) {
+    syscall_handle(frame);
 }
 
 void interrupts_handle_exception(uint32_t vector, uint32_t error_code, uint32_t eip, uint32_t cs, uint32_t eflags) {

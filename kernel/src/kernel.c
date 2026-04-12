@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include "interrupts.h"
+#include "gdt.h"
 #include "drivers/keyboard.h"
 #include "multiboot.h"
 #include "drivers/mouse.h"
@@ -12,6 +13,7 @@
 #include "stats_util.h"
 #include "timer.h"
 #include "terminal.h"
+#include "user_mode.h"
 
 #ifndef KERNEL_VERSION
 #define KERNEL_VERSION "v0.0.0-dev"
@@ -148,6 +150,7 @@ static void shell_print_help(void) {
     kprintln(" - heapleaks [max]");
     kprintln(" - history");
     kprintln(" - mouse");
+    kprintln(" - usermode");
 }
 
 static void kprint_i32(int32_t value) {
@@ -731,6 +734,11 @@ static void shell_run_command(const char* cmd) {
         return;
     }
 
+    if (str_equal(cmd, "usermode")) {
+        user_mode_run_demo();
+        return;
+    }
+
     kprint("Unknown command: ");
     kprintln(cmd);
 }
@@ -902,6 +910,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     g_multiboot_info = (const struct multiboot_info*)(uintptr_t)multiboot_info_addr;
 
     terminal_initialize();
+    gdt_initialize();
     pmm_initialize(g_multiboot_magic, g_multiboot_info);
     heap_initialize();
     const int print_heap_buffer_ok = print_initialize();
@@ -943,7 +952,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     if (!keyboard_heap_queue_ok) {
         kprintln("Warning: keyboard queue heap allocation failed; using static fallback queue.");
     }
-    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heaptriage, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history, mouse):");
+    kprintln("Type below (help, clear, version, locks, uptime, memmap, pmm, heap, heapcheck, heaptriage, heapfrag, heapstress [rounds], heaphist, heapleaks [max], history, mouse, usermode):");
 
     g_status_uptime_buffer = (char*)kmalloc(STATUS_UPTIME_BUFFER_SIZE);
     if (g_status_uptime_buffer == 0) {
