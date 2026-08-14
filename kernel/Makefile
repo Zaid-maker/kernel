@@ -115,6 +115,7 @@ test: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_CFLAGS) -DHEAP_ENABLE_TEST_HOOKS tests/heap_integrity_test.c src/heap.c src/heap_diag.c src/sbuf.c tests/pmm_stub.c -o $(BUILD_DIR)/heap_integrity_test
 	$(HOST_CC) $(HOST_CFLAGS) -DMOUSE_ENABLE_TEST_HOOKS tests/mouse_test.c src/drivers/mouse.c -o $(BUILD_DIR)/mouse_test
 	$(HOST_CC) $(HOST_CFLAGS) -DSYSCALL_ENABLE_TEST_HOOKS tests/syscall_test.c src/syscall.c -o $(BUILD_DIR)/syscall_test
+	$(HOST_CC) $(HOST_CFLAGS) -DPAGING_ENABLE_TEST_HOOKS tests/paging_test.c src/paging.c -o $(BUILD_DIR)/paging_test
 	$(BUILD_DIR)/sbuf_test
 	$(BUILD_DIR)/sbuf_integration_test
 	$(BUILD_DIR)/sbuf_boundary_test
@@ -124,6 +125,7 @@ test: $(BUILD_DIR)
 	$(BUILD_DIR)/heap_integrity_test
 	$(BUILD_DIR)/mouse_test
 	$(BUILD_DIR)/syscall_test
+	$(BUILD_DIR)/paging_test
 
 coverage-build: $(BUILD_DIR)
 	@mkdir -p $(BUILD_DIR)/coverage
@@ -132,6 +134,7 @@ coverage-build: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/heap_diag.c -o $(BUILD_DIR)/heap_diag_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DMOUSE_ENABLE_TEST_HOOKS -c src/drivers/mouse.c -o $(BUILD_DIR)/mouse_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DSYSCALL_ENABLE_TEST_HOOKS -c src/syscall.c -o $(BUILD_DIR)/syscall_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DPAGING_ENABLE_TEST_HOOKS -c src/paging.c -o $(BUILD_DIR)/paging_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c src/stats_util.c -o $(BUILD_DIR)/stats_util_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_test.c -o $(BUILD_DIR)/sbuf_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/sbuf_integration_test.c -o $(BUILD_DIR)/sbuf_integration_test_cov.o
@@ -142,6 +145,7 @@ coverage-build: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DHEAP_ENABLE_TEST_HOOKS -c tests/heap_integrity_test.c -o $(BUILD_DIR)/heap_integrity_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DMOUSE_ENABLE_TEST_HOOKS -c tests/mouse_test.c -o $(BUILD_DIR)/mouse_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -DSYSCALL_ENABLE_TEST_HOOKS -c tests/syscall_test.c -o $(BUILD_DIR)/syscall_test_cov.o
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/paging_test.c -o $(BUILD_DIR)/paging_test_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) -c tests/pmm_stub.c -o $(BUILD_DIR)/pmm_stub_cov.o
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/sbuf_integration_test_cov.o $(BUILD_DIR)/sbuf_cov.o -o $(BUILD_DIR)/sbuf_integration_test_cov
@@ -152,6 +156,7 @@ coverage-build: $(BUILD_DIR)
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/heap_integrity_test_cov.o $(BUILD_DIR)/heap_cov.o $(BUILD_DIR)/heap_diag_cov.o $(BUILD_DIR)/sbuf_cov.o $(BUILD_DIR)/pmm_stub_cov.o -o $(BUILD_DIR)/heap_integrity_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/mouse_test_cov.o $(BUILD_DIR)/mouse_cov.o -o $(BUILD_DIR)/mouse_test_cov
 	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/syscall_test_cov.o $(BUILD_DIR)/syscall_cov.o -o $(BUILD_DIR)/syscall_test_cov
+	$(HOST_CC) $(HOST_COVERAGE_CFLAGS) $(BUILD_DIR)/paging_test_cov.o $(BUILD_DIR)/paging_cov.o -o $(BUILD_DIR)/paging_test_cov
 
 coverage-run: coverage-build
 	lcov --zerocounters --directory $(BUILD_DIR)
@@ -164,6 +169,7 @@ coverage-run: coverage-build
 	$(BUILD_DIR)/heap_integrity_test_cov
 	$(BUILD_DIR)/mouse_test_cov
 	$(BUILD_DIR)/syscall_test_cov
+	$(BUILD_DIR)/paging_test_cov
 
 coverage-report: coverage-run
 	lcov --capture --directory $(BUILD_DIR) --output-file $(BUILD_DIR)/coverage/lcov.raw.info
