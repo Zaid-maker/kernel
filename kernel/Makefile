@@ -25,7 +25,8 @@ USER_DEMO_BIN := $(BUILD_DIR)/user_demo.bin
 SRC_ASM := src/boot.s src/isr.s src/user_demo_blob.S
 SRC_C := src/kernel.c src/terminal.c src/print.c src/drivers/keyboard.c src/drivers/mouse.c src/interrupts.c src/timer.c src/pmm.c src/paging.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c src/gdt.c src/syscall.c src/user_mode.c
 
-OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
+OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(filter %.s,$(SRC_ASM))) \
+           $(patsubst src/%.S,$(BUILD_DIR)/%.o,$(filter %.S,$(SRC_ASM)))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
 
 .PHONY: all clean run iso check-tools check-toolchain test coverage coverage-build coverage-run coverage-report
