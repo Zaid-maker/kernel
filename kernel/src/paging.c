@@ -82,6 +82,11 @@ int paging_prepare_user_space(uint32_t code_va, uint32_t code_pa, uint32_t stack
 
     const uint32_t window_pde = code_va >> 22;
 
+    /* A page table covers exactly one 4 MiB window, so its entries are
+       indexed by the low 10 bits of the virtual page number. */
+    const uint32_t code_pte = (code_va >> 12) & (PAGE_TABLE_ENTRIES - 1u);
+    const uint32_t stack_pte = (stack_va >> 12) & (PAGE_TABLE_ENTRIES - 1u);
+
     uint32_t pd_frame = pmm_alloc_frame();
     uint32_t pt_frame = pmm_alloc_frame();
     if (pd_frame == 0u || pt_frame == 0u) {
@@ -108,9 +113,16 @@ int paging_prepare_user_space(uint32_t code_va, uint32_t code_pa, uint32_t stack
         pt[i] = 0u;
     }
 
-    pt[code_va >> 12] = code_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-    pt[stack_va >> 12] = stack_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-    pt[PAGING_VGA_ADDRESS >> 12] = PAGING_VGA_ADDRESS | (PAGE_PRESENT | PAGE_WRITABLE);
+    pt[code_pte] = code_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    pt[stack_pte] = stack_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+
+    /* Keep the VGA text buffer reachable from ring 0 while the user directory
+       is active. When the user window covers VGA (window 0) this page table is
+       the only mapping; for any other window the cloned kernel identity PDE
+       already maps it supervisor-only. */
+    if ((PAGING_VGA_ADDRESS >> 22) == window_pde) {
+        pt[PAGING_VGA_ADDRESS >> 12] = PAGING_VGA_ADDRESS | (PAGE_PRESENT | PAGE_WRITABLE);
+    }
 
     pd[window_pde] = pt_frame | (PAGE_PRESENT | PAGE_WRITABLE);
 

@@ -18,9 +18,14 @@ enum {
     PAGE_TABLE_ENTRIES = 1024u,
     PAGE_4M_FLAGS = (PAGE_PRESENT | PAGE_WRITABLE | PAGE_PSE),
 
-    /* Same values user_mode.c uses for the ring-3 demo. */
+    /* Same values user_mode.c uses for the ring-3 demo (window 0). */
     TEST_CODE_VA = 0x00100000u,
     TEST_STACK_VA = 0x00200000u,
+
+    /* A nonzero user window (PDE 4) exercises the page-table-local PTE
+       indexing: full virtual page numbers 4096/4352, local indices 0/256. */
+    TEST_NONZERO_WINDOW_CODE_VA = 0x01000000u,
+    TEST_NONZERO_WINDOW_STACK_VA = 0x01100000u,
 
     PAGING_VGA_ADDRESS = 0x000B8000u,
     PAGING_KERNEL_WINDOW_PDE = 768u
@@ -44,8 +49,9 @@ enum {
 };
 
 /* g_phys_ram is indexed by fake physical address, so every frame the PMM
-   hands out is real, dereferenceable host memory. */
-static uint8_t g_phys_ram[PMM_TEST_RAM_SIZE];
+   hands out is real, dereferenceable host memory. Aligned to uint32_t so
+   paging.c's page-table writes through phys_to_ptr() stay well-aligned. */
+static _Alignas(uint32_t) uint8_t g_phys_ram[PMM_TEST_RAM_SIZE];
 static uint8_t g_frame_used[PMM_TEST_FRAME_COUNT];
 static uint32_t g_frame_addrs[PMM_TEST_FRAME_COUNT];
 
@@ -313,6 +319,59 @@ int main(void) {
         reset_hooks();
         paging_switch_user();
         ok &= expect_u32("switch after cleanup records zero", g_last_cr3_user, 0u);
+    }
+
+    /* --- a nonzero user window maps the correct PDE and local PTE indices --- */
+    {
+        reset_pmm();
+
+        const uint32_t code_pa = pmm_alloc_frame();
+        const uint32_t stack_pa = pmm_alloc_frame();
+
+        ok &= expect_u32("prepare nonzero window succeeds",
+                         paging_prepare_user_space(TEST_NONZERO_WINDOW_CODE_VA, code_pa,
+                                                   TEST_NONZERO_WINDOW_STACK_VA, stack_pa), 1u);
+
+        const uint32_t pd_phys = g_user_page_directory_phys;
+        const uint32_t* pd = (const uint32_t*)paging_test_phys_to_ptr(pd_phys);
+        ok &= expect_true("nonzero window pd readable", pd != 0);
+        if (pd != 0) {
+            const uint32_t window_pde = TEST_NONZERO_WINDOW_CODE_VA >> 22;
+            const uint32_t pt_phys = pd[window_pde] & ~0xFFFu;
+
+            ok &= expect_u32("nonzero window pde selected", window_pde, 4u);
+            ok &= expect_u32("nonzero window pde flags", pd[window_pde] & 0x3u,
+                             PAGE_PRESENT | PAGE_WRITABLE);
+            ok &= expect_u32("nonzero window pde no user bit", pd[window_pde] & PAGE_USER, 0u);
+            ok &= expect_u32("nonzero window pde targets page table", pt_phys,
+                             PMM_TEST_PHYS_BASE + 3u * PMM_TEST_FRAME_SIZE);
+
+            /* The VGA window's PDE is left as the cloned kernel identity page,
+               so VGA stays reachable from ring 0 without a VGA entry here. */
+            ok &= expect_u32("vga window pde cloned", pd[0], boot_page_directory[0]);
+
+            const uint32_t* pt = (const uint32_t*)paging_test_phys_to_ptr(pt_phys);
+            ok &= expect_true("nonzero window pt readable", pt != 0);
+            if (pt != 0) {
+                const uint32_t code_local =
+                    (TEST_NONZERO_WINDOW_CODE_VA >> 12) & (PAGE_TABLE_ENTRIES - 1u);
+                const uint32_t stack_local =
+                    (TEST_NONZERO_WINDOW_STACK_VA >> 12) & (PAGE_TABLE_ENTRIES - 1u);
+
+                ok &= expect_u32("nonzero window code pte", pt[code_local],
+                                 code_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER));
+                ok &= expect_u32("nonzero window stack pte", pt[stack_local],
+                                 stack_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER));
+
+                /* No VGA entry lives in this window's page table. */
+                ok &= expect_u32("nonzero window has no vga pte",
+                                 pt[PAGING_VGA_ADDRESS >> 12], 0u);
+            }
+        }
+
+        paging_cleanup_user_space();
+        pmm_free_frame(code_pa);
+        pmm_free_frame(stack_pa);
     }
 
     /* --- a second run reuses the released frames --- */
