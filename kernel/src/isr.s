@@ -7,6 +7,9 @@
 .extern interrupts_handle_syscall
 .extern g_user_return_esp
 .extern g_user_return_eip
+.extern g_user_transition_stack_top
+.extern g_user_page_directory_phys
+.extern g_kernel_page_directory_phys
 
 .macro ISR_NOERR num
 .global isr_exception_\num
@@ -139,20 +142,31 @@ tss_flush:
 
 .global user_mode_enter
 user_mode_enter:
+    /* arg0 = entry point (user VA), arg1 = user stack top */
     movl 4(%esp), %eax
     movl 8(%esp), %edx
 
+    /* Remember where to restore the kernel stack on exit. */
     movl %esp, g_user_return_esp
     movl $user_mode_return_label, g_user_return_eip
 
-    pushl $0x23
-    pushl %edx
+    /* Build the ring-3 iret frame on a stack mapped in both page directories.
+       The running kernel stack lives in identity-mapped low memory, which the
+       user directory does not expose, so it cannot hold the frame. */
+    movl g_user_transition_stack_top, %esp
+
+    pushl $0x23          /* user data segment */
+    pushl %edx           /* user stack top */
     pushfl
     popl %ecx
-    orl $0x200, %ecx
-    pushl %ecx
-    pushl $0x1B
-    pushl %eax
+    orl $0x200, %ecx     /* enable interrupts in ring 3 */
+    pushl %ecx           /* eflags */
+    pushl $0x1B          /* user code segment */
+    pushl %eax           /* entry point */
+
+    /* Switch to the user page directory right before entering ring 3. */
+    movl g_user_page_directory_phys, %ecx
+    movl %ecx, %cr3
     iret
 
 user_mode_return_label:
@@ -160,6 +174,13 @@ user_mode_return_label:
 
 .global user_mode_return_to_kernel_asm
 user_mode_return_to_kernel_asm:
+    /* Ran from a syscall with the user page directory active; switch back to
+       the kernel directory before touching the kernel stack. */
+    movl g_kernel_page_directory_phys, %eax
+    movl %eax, %cr3
     movl g_user_return_esp, %esp
+    /* int $0x80 uses an interrupt gate, which cleared IF on entry; there is
+       no iret in the exit path to restore it, so re-enable interrupts. */
+    sti
     jmp *g_user_return_eip
 

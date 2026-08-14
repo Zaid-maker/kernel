@@ -10,4 +10,7 @@ void user_mode_exit_to_kernel(void) __attribute__((noreturn));
 extern uint32_t g_user_return_esp;
 extern uint32_t g_user_return_eip;
 
+/* Higher-half stack used by isr.s to build the ring-3 iret frame. */
+extern uint32_t g_user_transition_stack_top;
+
 #endif

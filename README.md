@@ -41,6 +41,9 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, vie
 ## Features
 
 - Multiboot-compliant boot path with GRUB.
+- Paging enabled at boot: full 1:1 identity map of physical memory via 4 MiB PSE pages, with the kernel linked in the higher half at `0xC0000000+`.
+- Kernel/user address-space split enforced by page-table U/S bits: the ring-3 demo runs from its own user-accessible pages in a separate user page directory, while kernel mappings stay supervisor-only.
+- Ring-3 demo program (`usermode`) assembled separately, embedded in the kernel, and copied into user-mapped pages at runtime; it talks to the kernel only through `int 0x80`.
 - VGA text-mode terminal with color support.
 - Newline, tab handling, and automatic scroll when output reaches the screen bottom.
 - Small decimal and hexadecimal print helpers for kernel diagnostics.
@@ -84,7 +87,10 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, vie
 
 ## Project Layout
 
-- `kernel/src/boot.s`: Multiboot header and assembly entrypoint.
+- `kernel/src/boot.s`: Multiboot header, early page-table setup (1:1 identity map), and the higher-half entry jump.
+- `kernel/src/paging.c`, `kernel/src/paging.h`: kernel/user page directory management and CR3 switching.
+- `kernel/src/user_demo.s`: position-independent ring-3 demo program (assembled to a raw binary and embedded).
+- `kernel/src/user_demo_blob.S`: embeds the assembled ring-3 demo binary into the kernel image.
 - `kernel/src/kernel.c`: C kernel entry logic and boot demo output.
 - `kernel/src/terminal.c`, `kernel/src/terminal.h`: VGA terminal driver.
 - `kernel/src/print.c`, `kernel/src/print.h`: tiny printing helpers.
@@ -128,6 +134,8 @@ make -C kernel iso
 ```bash
 make -C kernel run
 ```
+
+Type `usermode` at the shell prompt to run the ring-3 demo, which switches to a user page directory and executes a copied user program via `int 0x80` syscalls.
 
 ## Run Unit Tests (Side-By-Side)
 

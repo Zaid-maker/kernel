@@ -8,8 +8,8 @@ enum {
     BITMAP_WORDS = MAX_FRAMES / 32u
 };
 
-extern uint8_t _kernel_start;
-extern uint8_t _kernel_end;
+extern uint8_t _kernel_physical_start;
+extern uint8_t _kernel_physical_end;
 
 static uint32_t frame_bitmap[BITMAP_WORDS];
 static uint32_t max_frame_seen = 0;
@@ -107,8 +107,10 @@ void pmm_initialize(uint32_t multiboot_magic, const struct multiboot_info* mbi) 
     /* Keep low memory and kernel/boot metadata reserved. */
     reserve_range(0u, 0x100000u);
 
-    const uint64_t kernel_base = (uint32_t)(uintptr_t)&_kernel_start;
-    const uint64_t kernel_len = (uint32_t)((uintptr_t)&_kernel_end - (uintptr_t)&_kernel_start);
+    /* The kernel is linked in the higher half; reserve its physical load
+       range so the identity map's low pages stay owned by the kernel. */
+    const uint64_t kernel_base = (uint32_t)(uintptr_t)&_kernel_physical_start;
+    const uint64_t kernel_len = (uint32_t)((uintptr_t)&_kernel_physical_end - (uintptr_t)&_kernel_physical_start);
     reserve_range(kernel_base, kernel_len);
 
     if (multiboot_magic == MULTIBOOT_BOOTLOADER_MAGIC && mbi != 0) {

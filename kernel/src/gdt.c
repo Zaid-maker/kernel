@@ -51,7 +51,9 @@ static struct gdt_entry g_gdt[6];
 static struct gdt_ptr g_gdt_ptr;
 static struct tss_entry g_tss;
 
-static uint8_t g_tss_kernel_stack[4096] __attribute__((aligned(16)));
+/* Kernel stack switched to on ring-3 -> ring-0 transitions. Sized for the
+   syscall handlers (e.g. the 4 KiB+ write chunk in syscall.c). */
+static uint8_t g_tss_kernel_stack[16384] __attribute__((aligned(16)));
 
 extern void gdt_flush(const struct gdt_ptr* ptr);
 extern void tss_flush(uint16_t tss_selector);

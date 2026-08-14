@@ -7,6 +7,7 @@
 #include "drivers/mouse.h"
 #include "heap.h"
 #include "heap_diag.h"
+#include "paging.h"
 #include "pmm.h"
 #include "print.h"
 #include "sbuf.h"
@@ -911,6 +912,12 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
 
     terminal_initialize();
     gdt_initialize();
+
+    /* Paging was enabled by boot.s with the static boot page directory
+       (full 1:1 identity map via 4 MiB pages); record its physical address
+       so the user-mode path can switch CR3 back to it. */
+    paging_initialize();
+
     pmm_initialize(g_multiboot_magic, g_multiboot_info);
     heap_initialize();
     const int print_heap_buffer_ok = print_initialize();
@@ -929,6 +936,7 @@ void kernel_main(uint32_t multiboot_magic, uint32_t multiboot_info_addr) {
     kprintln(KERNEL_VERSION);
     kprintln("Kernel booted successfully.");
     kprintln("Features:");
+    kprintln(" - 1:1 identity paging with higher-half kernel (0xC0000000+)");
     kprintln(" - VGA terminal driver");
     kprintln(" - Newline, tab, and automatic scrolling");
     kprintln(" - Decimal and hexadecimal output helpers");

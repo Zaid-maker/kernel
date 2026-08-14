@@ -2,6 +2,7 @@ CROSS_COMPILE ?= i686-elf-
 CC := $(CROSS_COMPILE)gcc
 AS := $(CROSS_COMPILE)as
 LD := $(CROSS_COMPILE)ld
+OBJCOPY := $(CROSS_COMPILE)objcopy
 HOST_CC ?= gcc
 
 CFLAGS := -std=gnu11 -ffreestanding -O2 -Wall -Wextra -m32
@@ -19,9 +20,10 @@ ISO_DIR := $(BUILD_DIR)/iso
 KERNEL_BIN := $(BUILD_DIR)/kernel.bin
 KERNEL_ELF := $(BUILD_DIR)/kernel.elf
 ISO_IMAGE := $(BUILD_DIR)/kernel.iso
+USER_DEMO_BIN := $(BUILD_DIR)/user_demo.bin
 
-SRC_ASM := src/boot.s src/isr.s
-SRC_C := src/kernel.c src/terminal.c src/print.c src/drivers/keyboard.c src/drivers/mouse.c src/interrupts.c src/timer.c src/pmm.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c src/gdt.c src/syscall.c src/user_mode.c
+SRC_ASM := src/boot.s src/isr.s src/user_demo_blob.S
+SRC_C := src/kernel.c src/terminal.c src/print.c src/drivers/keyboard.c src/drivers/mouse.c src/interrupts.c src/timer.c src/pmm.c src/paging.c src/heap.c src/heap_diag.c src/sbuf.c src/stats_util.c src/gdt.c src/syscall.c src/user_mode.c
 
 OBJ_ASM := $(patsubst src/%.s,$(BUILD_DIR)/%.o,$(SRC_ASM))
 OBJ_C := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SRC_C))
@@ -51,6 +53,11 @@ check-toolchain:
 		echo "Use an ELF cross linker (for example i686-elf-ld) and set CROSS_COMPILE=i686-elf-"; \
 		exit 1; \
 	}
+	@command -v $(OBJCOPY) >/dev/null 2>&1 || { \
+		echo "Missing objcopy: $(OBJCOPY)"; \
+		echo "Install an ELF i686 cross toolchain and build with CROSS_COMPILE=i686-elf-"; \
+		exit 1; \
+	}
 
 check-tools:
 	@command -v $(CC) >/dev/null 2>&1 || { echo "Missing $(CC)"; exit 1; }
@@ -66,11 +73,23 @@ $(BUILD_DIR)/%.o: src/%.s | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(AS) $(ASFLAGS) $< -o $@
 
+$(BUILD_DIR)/%.o: src/%.S | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(AS) $(ASFLAGS) $< -o $@
+
 $(BUILD_DIR)/%.o: src/%.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(KERNEL_ELF): $(OBJ_ASM) $(OBJ_C) linker.ld
+# Assemble the ring-3 demo program to a raw binary and embed it into the
+# kernel (user_demo_blob.S includes it via .incbin).
+$(USER_DEMO_BIN): src/user_demo.s | $(BUILD_DIR)
+	$(AS) $(ASFLAGS) src/user_demo.s -o $(BUILD_DIR)/user_demo.o
+	$(OBJCOPY) -O binary $(BUILD_DIR)/user_demo.o $(USER_DEMO_BIN)
+
+$(BUILD_DIR)/user_demo_blob.o: $(USER_DEMO_BIN)
+
+$(KERNEL_ELF): $(OBJ_ASM) $(OBJ_C) linker.ld $(USER_DEMO_BIN)
 	$(LD) $(LDFLAGS) -o $@ $(OBJ_ASM) $(OBJ_C)
 
 $(KERNEL_BIN): check-toolchain $(KERNEL_ELF)

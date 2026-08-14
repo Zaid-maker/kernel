@@ -2,82 +2,36 @@
 
 #include <stdint.h>
 
+#include "paging.h"
+#include "pmm.h"
 #include "print.h"
-#include "syscall.h"
+
+/* Raw ring-3 program produced from user_demo.s (see user_demo_blob.S). */
+extern const uint8_t user_demo_blob_start[];
+extern const uint8_t user_demo_blob_end[];
 
 uint32_t g_user_return_esp = 0u;
 uint32_t g_user_return_eip = 0u;
+uint32_t g_user_transition_stack_top = 0u;
 
 static uint8_t g_user_mode_active = 0u;
-static uint8_t g_user_stack[4096] __attribute__((aligned(16)));
+
+/* Stack used by isr.s to build the ring-3 iret frame. It lives in .bss
+   (higher half), so it stays mapped while either page directory is active. */
+static uint8_t g_user_transition_stack[4096] __attribute__((aligned(16)));
+
+enum {
+    USER_CODE_VA = 0x00100000u,
+    USER_STACK_VA = 0x00200000u,
+    USER_STACK_SIZE = 4096u
+};
 
 extern void user_mode_enter(uint32_t entry, uint32_t user_stack_top);
 extern void user_mode_return_to_kernel_asm(void) __attribute__((noreturn));
 
-static inline uint32_t user_syscall2(uint32_t number, uint32_t arg0, uint32_t arg1) {
-    uint32_t result;
-    __asm__ volatile(
-        "int $0x80"
-        : "=a"(result)
-        : "a"(number), "b"(arg0), "c"(arg1)
-        : "edx", "memory"
-    );
-    return result;
-}
-
-static inline void user_syscall_exit(void) __attribute__((noreturn));
-
-static inline void user_syscall_exit(void) {
-    __asm__ volatile(
-        "int $0x80"
-        :
-        : "a"(SYSCALL_EXIT)
-        : "ebx", "ecx", "edx", "memory"
-    );
-
-    __builtin_unreachable();
-}
-
-__attribute__((noreturn)) static void user_demo_entry(void) {
-    __asm__ volatile(
-        "movw $0x23, %%ax\n"
-        "movw %%ax, %%ds\n"
-        "movw %%ax, %%es\n"
-        "movw %%ax, %%fs\n"
-        "movw %%ax, %%gs\n"
-        :
-        :
-        : "ax", "memory"
-    );
-
-    static const char user_msg[] = "[user] hello from ring3 via int 0x80\n";
-    (void)user_syscall2(SYSCALL_WRITE, (uint32_t)(uintptr_t)user_msg, (uint32_t)(sizeof(user_msg) - 1u));
-
-    const uint32_t uptime = user_syscall2(SYSCALL_UPTIME_SECONDS, 0u, 0u);
-    static const char prefix[] = "[user] uptime seconds: ";
-    (void)user_syscall2(SYSCALL_WRITE, (uint32_t)(uintptr_t)prefix, (uint32_t)(sizeof(prefix) - 1u));
-
-    char digits[10];
-    uint32_t n = uptime;
-    uint32_t count = 0u;
-    do {
-        digits[count++] = (char)('0' + (n % 10u));
-        n /= 10u;
-    } while (n != 0u && count < 10u);
-
-    for (uint32_t i = 0u; i < count / 2u; ++i) {
-        const char tmp = digits[i];
-        digits[i] = digits[count - 1u - i];
-        digits[count - 1u - i] = tmp;
-    }
-
-    (void)user_syscall2(SYSCALL_WRITE, (uint32_t)(uintptr_t)digits, count);
-    static const char newline[] = "\n";
-    (void)user_syscall2(SYSCALL_WRITE, (uint32_t)(uintptr_t)newline, 1u);
-
-    user_syscall_exit();
-
-    for (;;) {
+static void copy_bytes(uint8_t* dst, const uint8_t* src, uint32_t len) {
+    for (uint32_t i = 0u; i < len; ++i) {
+        dst[i] = src[i];
     }
 }
 
@@ -96,8 +50,47 @@ void user_mode_run_demo(void) {
         return;
     }
 
+    const uint32_t blob_len = (uint32_t)(user_demo_blob_end - user_demo_blob_start);
+    if (blob_len == 0u || blob_len > USER_STACK_SIZE) {
+        kprintln("User demo blob has an invalid size.");
+        return;
+    }
+
+    const uint32_t code_frame = pmm_alloc_frame();
+    const uint32_t stack_frame = pmm_alloc_frame();
+    if (code_frame == 0u || stack_frame == 0u) {
+        if (code_frame != 0u) {
+            pmm_free_frame(code_frame);
+        }
+        if (stack_frame != 0u) {
+            pmm_free_frame(stack_frame);
+        }
+        kprintln("Failed to allocate user mode memory.");
+        return;
+    }
+
+    /* Copy the embedded ring-3 program into its code page (the kernel's
+       identity map makes the frame address directly dereferenceable). */
+    copy_bytes((uint8_t*)(uintptr_t)code_frame, user_demo_blob_start, blob_len);
+
+    if (!paging_prepare_user_space(USER_CODE_VA, code_frame, USER_STACK_VA, stack_frame)) {
+        pmm_free_frame(code_frame);
+        pmm_free_frame(stack_frame);
+        kprintln("Failed to set up user page tables.");
+        return;
+    }
+
+    g_user_transition_stack_top =
+        (uint32_t)(uintptr_t)&g_user_transition_stack[sizeof(g_user_transition_stack)];
+
     g_user_mode_active = 1u;
     kprintln("Switching to user mode...");
-    user_mode_enter((uint32_t)(uintptr_t)user_demo_entry, (uint32_t)(uintptr_t)&g_user_stack[sizeof(g_user_stack)]);
+    user_mode_enter(USER_CODE_VA, USER_STACK_VA + USER_STACK_SIZE);
     kprintln("Returned from user mode.");
+
+    /* Back on the kernel directory; hand the demo's frames and page tables
+       back to the PMM so repeated `usermode` runs do not leak memory. */
+    paging_cleanup_user_space();
+    pmm_free_frame(code_frame);
+    pmm_free_frame(stack_frame);
 }
