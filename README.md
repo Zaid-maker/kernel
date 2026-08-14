@@ -75,7 +75,7 @@ You can boot in QEMU, use the shell commands, inspect lock state and uptime, vie
 - Local builds use `kernel/VERSION` automatically.
 - Release pipeline overrides with release tag so shipped assets match the tag exactly.
 - Optional manual override:
-  - `make -C kernel all KERNEL_VERSION=v0.0.20260412`
+  - `make -C kernel all KERNEL_VERSION=v0.0.20260815`
 
 ## Project Website
 
@@ -144,7 +144,7 @@ make -C kernel test
 ```
 
 This runs host-side unit tests for shared formatting helpers (`src/sbuf.c`) in parallel with kernel feature work.
-It also runs heap diagnostics tests (`heap_diag_test`), corruption-injection integrity tests (`heap_integrity_test`), and the PS/2 mouse driver suite (`mouse_test`).
+It also runs heap diagnostics tests (`heap_diag_test`), corruption-injection integrity tests (`heap_integrity_test`), the PS/2 mouse driver suite (`mouse_test`), and the paging module suite (`paging_test`), which validates the kernel/user page directory split against fake physical memory and recorded CR3 switches.
 It also runs a runtime heap allocator test (`heap_runtime_test`) against a deterministic PMM stub so `kmalloc`/`kfree` and merge/split paths contribute to coverage.
 Both CI (`build-kernel.yml`) and release (`release-kernel.yml`) pipelines run this test gate before build/release assets.
 
@@ -181,7 +181,7 @@ Latest release milestone: first PS/2 mouse driver landed with IRQ12 packet decod
 - Run `heapstress` (and `heapstress 512`) and verify stress summary counters print without hanging.
 - Run `heaphist` and verify live block/byte buckets are printed.
 - Run `heapleaks` (and `heapleaks 32`) and verify active allocation trace rows are printed.
-- Run `make -C kernel test` and verify `heap_diag_test`, `heap_runtime_test`, `heap_integrity_test`, and `mouse_test` pass.
+- Run `make -C kernel test` and verify `heap_diag_test`, `heap_runtime_test`, `heap_integrity_test`, `mouse_test`, and `paging_test` pass.
 - Status bar continues updating lock states, mouse activity (`M:... P:...`), and uptime while typing commands.
 - Keyboard input remains functional if heap queue allocation fails (fallback queue path).
 - Decimal printing remains functional if print-buffer heap allocation fails (fallback path).

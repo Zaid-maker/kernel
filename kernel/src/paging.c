@@ -12,6 +12,27 @@ uint32_t g_user_page_directory_phys = 0u;
 
 static uint32_t g_user_page_table_phys = 0u;
 
+#ifdef PAGING_ENABLE_TEST_HOOKS
+/* Host-side test hooks (see tests/paging_test.c). The test provides a fake
+   physical-memory mapping and records CR3 writes instead of executing them. */
+extern void* paging_test_phys_to_ptr(uint32_t phys);
+extern void paging_test_record_cr3_switch_kernel(uint32_t pd_phys);
+extern void paging_test_record_cr3_switch_user(uint32_t pd_phys);
+#endif
+
+/* Page directory/page table frames are physical addresses; the kernel's
+   1:1 identity map makes them directly dereferenceable. Test hooks redirect
+   the dereference through the test's fake physical memory. */
+#ifdef PAGING_ENABLE_TEST_HOOKS
+static inline uint32_t* page_table_ptr(uint32_t phys) {
+    return (uint32_t*)paging_test_phys_to_ptr(phys);
+}
+#else
+static inline uint32_t* page_table_ptr(uint32_t phys) {
+    return (uint32_t*)(uintptr_t)phys;
+}
+#endif
+
 enum {
     PAGE_PRESENT  = 0x01u,
     PAGE_WRITABLE = 0x02u,
@@ -33,11 +54,19 @@ void paging_initialize(void) {
 }
 
 void paging_switch_kernel(void) {
+#ifdef PAGING_ENABLE_TEST_HOOKS
+    paging_test_record_cr3_switch_kernel(g_kernel_page_directory_phys);
+#else
     __asm__ volatile("movl %0, %%cr3" : : "r"(g_kernel_page_directory_phys) : "memory");
+#endif
 }
 
 void paging_switch_user(void) {
+#ifdef PAGING_ENABLE_TEST_HOOKS
+    paging_test_record_cr3_switch_user(g_user_page_directory_phys);
+#else
     __asm__ volatile("movl %0, %%cr3" : : "r"(g_user_page_directory_phys) : "memory");
+#endif
 }
 
 int paging_prepare_user_space(uint32_t code_va, uint32_t code_pa, uint32_t stack_va, uint32_t stack_pa) {
@@ -53,6 +82,11 @@ int paging_prepare_user_space(uint32_t code_va, uint32_t code_pa, uint32_t stack
 
     const uint32_t window_pde = code_va >> 22;
 
+    /* A page table covers exactly one 4 MiB window, so its entries are
+       indexed by the low 10 bits of the virtual page number. */
+    const uint32_t code_pte = (code_va >> 12) & (PAGE_TABLE_ENTRIES - 1u);
+    const uint32_t stack_pte = (stack_va >> 12) & (PAGE_TABLE_ENTRIES - 1u);
+
     uint32_t pd_frame = pmm_alloc_frame();
     uint32_t pt_frame = pmm_alloc_frame();
     if (pd_frame == 0u || pt_frame == 0u) {
@@ -65,10 +99,8 @@ int paging_prepare_user_space(uint32_t code_va, uint32_t code_pa, uint32_t stack
         return 0;
     }
 
-    /* Frames come from the PMM as physical addresses; the kernel's identity
-       map makes them directly dereferenceable. */
-    uint32_t* pd = (uint32_t*)(uintptr_t)pd_frame;
-    uint32_t* pt = (uint32_t*)(uintptr_t)pt_frame;
+    uint32_t* pd = page_table_ptr(pd_frame);
+    uint32_t* pt = page_table_ptr(pt_frame);
 
     /* Clone the kernel mappings as supervisor-only pages so interrupt and
        syscall handlers (which run with this directory active) keep working. */
@@ -81,9 +113,16 @@ int paging_prepare_user_space(uint32_t code_va, uint32_t code_pa, uint32_t stack
         pt[i] = 0u;
     }
 
-    pt[code_va >> 12] = code_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-    pt[stack_va >> 12] = stack_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-    pt[PAGING_VGA_ADDRESS >> 12] = PAGING_VGA_ADDRESS | (PAGE_PRESENT | PAGE_WRITABLE);
+    pt[code_pte] = code_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    pt[stack_pte] = stack_pa | (PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+
+    /* Keep the VGA text buffer reachable from ring 0 while the user directory
+       is active. When the user window covers VGA (window 0) this page table is
+       the only mapping; for any other window the cloned kernel identity PDE
+       already maps it supervisor-only. */
+    if ((PAGING_VGA_ADDRESS >> 22) == window_pde) {
+        pt[PAGING_VGA_ADDRESS >> 12] = PAGING_VGA_ADDRESS | (PAGE_PRESENT | PAGE_WRITABLE);
+    }
 
     pd[window_pde] = pt_frame | (PAGE_PRESENT | PAGE_WRITABLE);
 
